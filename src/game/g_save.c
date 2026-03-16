@@ -50,41 +50,22 @@ field_t fields[] = {
 	{"rotate", FOFS(rotate), F_VECTOR},
 	{"rotate_vec", FOFS(rotate), F_VECTOR},
 	{"speeds", FOFS(rotate_speed), F_VECTOR},
-        {"move_origin", FOFS(move_origin), F_VECTOR},
-        {"move_angles", FOFS(move_angles), F_VECTOR},
-        {"mission_controller", FOFS(oblivion.controller), F_EDICT, FFL_NOSPAWN},
-        {"mission_last_controller", FOFS(oblivion.last_controller), F_EDICT, FFL_NOSPAWN},
-        {"mission_prev_path", FOFS(oblivion.prev_path), F_EDICT, FFL_NOSPAWN},
-        {"mission_path_target", FOFS(oblivion.path_target), F_EDICT, FFL_NOSPAWN},
-        {"mission_script_target", FOFS(oblivion.script_target), F_EDICT, FFL_NOSPAWN},
-        {"mission_controller_serial", FOFS(oblivion.controller_serial), F_INT, FFL_NOSPAWN},
-        {"mission_path_toggle", FOFS(oblivion.path_toggle), F_INT, FFL_NOSPAWN},
-        {"mission_controller_distance", FOFS(oblivion.controller_distance), F_FLOAT, FFL_NOSPAWN},
-        {"mission_controller_resume", FOFS(oblivion.controller_resume), F_FLOAT, FFL_NOSPAWN},
-        {"mission_path_wait", FOFS(oblivion.path_wait_time), F_FLOAT, FFL_NOSPAWN},
-        {"mission_path_time", FOFS(oblivion.path_time), F_FLOAT, FFL_NOSPAWN},
-        {"mission_path_speed", FOFS(oblivion.path_speed), F_FLOAT, FFL_NOSPAWN},
-        {"mission_path_step_speed", FOFS(oblivion.path_step_speed), F_FLOAT, FFL_NOSPAWN},
-        {"mission_path_remaining", FOFS(oblivion.path_remaining), F_FLOAT, FFL_NOSPAWN},
-        {"mission_path_state", FOFS(oblivion.path_state), F_INT, FFL_NOSPAWN},
-        {"mission_path_dir", FOFS(oblivion.path_dir), F_VECTOR, FFL_NOSPAWN},
-        {"mission_path_velocity", FOFS(oblivion.path_velocity), F_VECTOR, FFL_NOSPAWN},
-        {"mission_custom_name", FOFS(oblivion.custom_name), F_LSTRING},
-        {"mission_custom_name_time", FOFS(oblivion.custom_name_time), F_FLOAT, FFL_NOSPAWN},
-        {"mission_id", FOFS(oblivion.mission_id), F_LSTRING},
-        {"mission_title", FOFS(oblivion.mission_title), F_LSTRING},
-        {"mission_text", FOFS(oblivion.mission_text), F_LSTRING},
-        {"mission_event", FOFS(oblivion.mission_state), F_INT},
-        {"mission_timer_limit", FOFS(oblivion.mission_timer_limit), F_INT},
-        {"mission_timer_start", FOFS(oblivion.mission_timer_remaining), F_INT},
-        {"mission_flags", FOFS(oblivion.mission_timer_cooldown), F_INT},
-        {"mission_origin", FOFS(oblivion.mission_origin), F_VECTOR},
-        {"mission_angles", FOFS(oblivion.mission_angles), F_VECTOR},
-        {"mission_velocity", FOFS(oblivion.mission_velocity), F_VECTOR},
-        {"mission_blend", FOFS(oblivion.mission_blend), F_FLOAT},
-        {"mission_radius", FOFS(oblivion.mission_radius), F_FLOAT},
-        {"style", FOFS(style), F_INT},
-        {"count", FOFS(count), F_INT},
+	{"move_origin", FOFS(move_origin), F_VECTOR},
+	{"move_angles", FOFS(move_angles), F_VECTOR},
+	{"mission_id", FOFS(oblivion.mission_id), F_LSTRING},
+	{"mission_title", FOFS(oblivion.mission_title), F_LSTRING},
+	{"mission_text", FOFS(oblivion.mission_text), F_LSTRING},
+	{"mission_event", FOFS(oblivion.mission_state), F_INT},
+	{"mission_timer_limit", FOFS(oblivion.mission_timer_limit), F_INT},
+	{"mission_timer_start", FOFS(oblivion.mission_timer_remaining), F_INT},
+	{"mission_flags", FOFS(oblivion.mission_timer_cooldown), F_INT},
+	{"mission_origin", FOFS(oblivion.mission_origin), F_VECTOR},
+	{"mission_angles", FOFS(oblivion.mission_angles), F_VECTOR},
+	{"mission_velocity", FOFS(oblivion.mission_velocity), F_VECTOR},
+	{"mission_blend", FOFS(oblivion.mission_blend), F_FLOAT},
+	{"mission_radius", FOFS(oblivion.mission_radius), F_FLOAT},
+	{"style", FOFS(style), F_INT},
+	{"count", FOFS(count), F_INT},
 	{"health", FOFS(health), F_INT},
 	{"sounds", FOFS(sounds), F_INT},
 	{"light", 0, F_IGNORE},
@@ -175,8 +156,9 @@ field_t		clientfields[] =
 	{"pers.weapon", CLOFS(pers.weapon), F_ITEM},
 	{"pers.lastweapon", CLOFS(pers.lastweapon), F_ITEM},
 	{"newweapon", CLOFS(newweapon), F_ITEM},
-	{"rtdu.next_use_time", CLOFS(rtdu.next_use_time), F_FLOAT},
 	{"rtdu.turret", CLOFS(rtdu.turret), F_EDICT},
+	{"remote_view_cmd_hook", CLOFS(remote_view_cmd_hook), F_FUNCTION},
+	{"remote_view_body", CLOFS(remote_view_body), F_EDICT},
 
 	{NULL, 0, F_INT}
 };
@@ -244,15 +226,15 @@ void InitGame (void)
 	sv_maplist = gi.cvar ("sv_maplist", "", 0);
 
         // items
-        InitItems ();
+	InitItems ();
 
-        Com_sprintf (game.helpmessage1, sizeof(game.helpmessage1), "");
+	Com_sprintf (game.helpmessage1, sizeof(game.helpmessage1), "");
 
-        Com_sprintf (game.helpmessage2, sizeof(game.helpmessage2), "");
+	Com_sprintf (game.helpmessage2, sizeof(game.helpmessage2), "");
 
-        Mission_InitGame ();
+	Mission_InitGame ();
 
-        // initialize all entities for this game
+	// initialize all entities for this game
 	game.maxentities = maxentities->value;
 	g_edicts =  gi.TagMalloc (game.maxentities * sizeof(g_edicts[0]), TAG_GAME);
 	globals.edicts = g_edicts;
@@ -549,14 +531,14 @@ void ReadGame (char *filename)
 	g_edicts =  gi.TagMalloc (game.maxentities * sizeof(g_edicts[0]), TAG_GAME);
 	globals.edicts = g_edicts;
 
-        fread (&game, sizeof(game), 1, f);
-        game.clients = gi.TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
-        for (i=0 ; i<game.maxclients ; i++)
-                ReadClient (f, &game.clients[i]);
+	fread (&game, sizeof(game), 1, f);
+	game.clients = gi.TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
+	for (i=0 ; i<game.maxclients ; i++)
+		ReadClient (f, &game.clients[i]);
 
-        Mission_OnGameLoaded ();
+	Mission_OnGameLoaded ();
 
-        fclose (f);
+	fclose (f);
 }
 
 //==========================================================
@@ -709,40 +691,6 @@ void WriteLevel (char *filename)
 
 
 /*
-=============
-G_RestoreRTDUTurretLinks
-
-Rebuilds gclient_t.rtdu.turret references after entities are restored.
-=============
-*/
-static void G_RestoreRTDUTurretLinks (void)
-{
-	int		i;
-	edict_t	*ent;
-
-	for (i=0 ; i<game.maxclients ; i++)
-	{
-		game.clients[i].rtdu.turret = NULL;
-	}
-
-	for (i=0 ; i<globals.num_edicts ; i++)
-	{
-		ent = &g_edicts[i];
-
-		if (!ent->inuse || !ent->classname)
-			continue;
-
-		if (strcmp(ent->classname, "rtdu_turret"))
-			continue;
-
-		if (!ent->owner || !ent->owner->client)
-			continue;
-
-		ent->owner->client->rtdu.turret = ent;
-	}
-}
-
-/*
 =================
 ReadLevel
 
@@ -821,8 +769,6 @@ void ReadLevel (char *filename)
 		memset (&ent->area, 0, sizeof(ent->area));
 		gi.linkentity (ent);
 
-		if (ent->classname && strcmp(ent->classname, "misc_actor") == 0)
-			Actor_PostLoad (ent);
 	}
 
 	fclose (f);
@@ -848,6 +794,4 @@ void ReadLevel (char *filename)
 			if (strcmp(ent->classname, "target_crosslevel_target") == 0)
 				ent->nextthink = level.time + ent->delay;
 	}
-
-	G_RestoreRTDUTurretLinks ();
 }

@@ -501,32 +501,27 @@ void soldier_fire (edict_t *self, int flash_number)
 		VectorNormalize (aim);
 	}
 
-        if (self->s.skinnum <= 1)
-        {
-                monster_fire_blaster (self, start, aim, 5, 600, flash_index, EF_BLASTER);
-        }
-        else if (self->s.skinnum <= 3)
-        {
-                monster_fire_shotgun (self, start, aim, 2, 1, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SHOTGUN_COUNT, flash_index);
-        }
-        else if (self->count)
-        {
-                const int damage = 50;
-                const int speed = 600;
-                const float damage_radius = 480.0f;
-                const int splash_damage = damage;
+	if (self->s.skinnum <= 1)
+	{
+		monster_fire_blaster (self, start, aim, 5, 600, flash_index, EF_BLASTER);
+	}
+	else if (self->s.skinnum <= 3)
+	{
+		monster_fire_shotgun (self, start, aim, 2, 1, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SHOTGUN_COUNT, flash_index);
+	}
+	else if (self->s.skinnum >= 6)
+	{
+		monster_fire_deatom (self, start, aim, 50, 600);
 
-                fire_deatomizer (self, start, aim, damage, speed, damage_radius, splash_damage);
-
-                gi.WriteByte (svc_muzzleflash2);
-                gi.WriteShort (self - g_edicts);
-                gi.WriteByte (flash_index);
-                gi.multicast (start, MULTICAST_PVS);
-        }
-        else
-        {
-                if (!(self->monsterinfo.aiflags & AI_HOLD_FRAME))
-                        self->monsterinfo.pausetime = level.time + (3 + rand() % 8) * FRAMETIME;
+		gi.WriteByte (svc_muzzleflash2);
+		gi.WriteShort (self - g_edicts);
+		gi.WriteByte (flash_index);
+		gi.multicast (start, MULTICAST_PVS);
+	}
+	else
+	{
+		if (!(self->monsterinfo.aiflags & AI_HOLD_FRAME))
+			self->monsterinfo.pausetime = level.time + (3 + rand() % 8) * FRAMETIME;
 
 		monster_fire_bullet (self, start, aim, 2, 4, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, flash_index);
 
@@ -1316,23 +1311,19 @@ void SP_monster_soldier_ss (edict_t *self)
 */
 void SP_monster_soldier_deatom (edict_t *self)
 {
-        if (deathmatch->value)
-        {
-                G_FreeEdict (self);
-                return;
-        }
+	if (deathmatch->value)
+	{
+		G_FreeEdict (self);
+		return;
+	}
 
-        SP_monster_soldier_x (self);
+	SP_monster_soldier_x (self);
 
-        sound_pain_ss = gi.soundindex ("soldier/solpain3.wav");
-        sound_death_ss = gi.soundindex ("soldier/soldeth3.wav");
-        gi.soundindex ("deatom/dfire.wav");
-        gi.soundindex ("deatom/dfly.wav");
-        gi.soundindex ("deatom/dimpact.wav");
+	sound_pain_ss = gi.soundindex ("soldier/solpain3.wav");
+	sound_death_ss = gi.soundindex ("soldier/soldeth3.wav");
+	gi.soundindex ("soldier/solatck3.wav");
 
-        self->s.skinnum = 4;
-        self->count = 1;
-        self->health = 55;
-        self->gib_health = -40;
-        self->monsterinfo.run (self);
+	self->s.skinnum = 6;
+	self->health = 40;
+	self->gib_health = -30;
 }

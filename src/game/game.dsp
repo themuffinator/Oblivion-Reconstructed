@@ -190,33 +190,6 @@ DEP_CPP_G_AI_=\
 # End Source File
 # Begin Source File
 
-SOURCE=.\g_chase.c
-
-!IF  "$(CFG)" == "game - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "game - Win32 Debug"
-
-!ELSEIF  "$(CFG)" == "game - Win32 Debug Alpha"
-
-DEP_CPP_G_CHA=\
-	".\g_local.h"\
-	".\game.h"\
-	"..\common\q_shared.h"\
-	
-
-!ELSEIF  "$(CFG)" == "game - Win32 Release Alpha"
-
-DEP_CPP_G_CHA=\
-	".\g_local.h"\
-	".\game.h"\
-	"..\common\q_shared.h"\
-	
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
 SOURCE=.\g_cmds.c
 
 !IF  "$(CFG)" == "game - Win32 Release"

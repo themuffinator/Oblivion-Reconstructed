@@ -56,6 +56,21 @@ class SpawnManifestSnapshotTest(unittest.TestCase):
             "sub_10037c80",
             "ammo_rifleplasma should map to the HLIL function recovered from sub_1000b150",
         )
+        self.assertEqual(
+            hlil_manifest["misc_camera"].get("function"),
+            "sub_100035f0",
+            "misc_camera should map to the retail camera spawn recovered from the HLIL corpus",
+        )
+        self.assertEqual(
+            hlil_manifest["misc_camera_target"].get("function"),
+            "sub_10003880",
+            "misc_camera_target should map to the retail path-target spawn recovered from the HLIL corpus",
+        )
+        self.assertEqual(
+            hlil_manifest["trigger_misc_camera"].get("function"),
+            "sub_10003ba0",
+            "trigger_misc_camera should map to the retail trigger wrapper recovered from the HLIL corpus",
+        )
         repo_manifest = current.get("combined", {}).get("repo", {})
         self.assertIn(
             "monster_makron",

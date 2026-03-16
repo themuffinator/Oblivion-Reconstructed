@@ -1049,72 +1049,6 @@ void fire_bfg(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed,
 	gi.linkentity(bfg);
 }
 
-static void deatomizer_touch(edict_t *self, edict_t *other, cplane_t *plane,
-                             csurface_t *surf) {
-  vec3_t dir;
-
-  if (other == self->owner)
-    return;
-
-  if (surf && (surf->flags & SURF_SKY)) {
-    G_FreeEdict(self);
-    return;
-  }
-
-  if (other->takedamage) {
-    if (!VectorCompare(self->velocity, vec3_origin))
-      VectorNormalize2(self->velocity, dir);
-    else
-      VectorClear(dir);
-    T_Damage(other, self, self->owner, dir, self->s.origin,
-             plane ? plane->normal : vec3_origin, self->dmg, 0, DAMAGE_ENERGY,
-             MOD_DEATOMIZER);
-  } else {
-    gi.WriteByte(svc_temp_entity);
-    gi.WriteByte(TE_PLASMA_EXPLOSION);
-    gi.WritePosition(self->s.origin);
-    gi.multicast(self->s.origin, MULTICAST_PVS);
-  }
-
-  if (self->dmg_radius > 0)
-    T_RadiusDamage(self, self->owner, self->radius_dmg, other, self->dmg_radius,
-                   MOD_DEATOMIZER_SPLASH);
-
-  G_FreeEdict(self);
-}
-
-void fire_deatomizer(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                     int speed, float damage_radius, int splash_damage) {
-  edict_t *bolt;
-
-  bolt = G_Spawn();
-  VectorCopy(start, bolt->s.origin);
-  VectorCopy(start, bolt->s.old_origin);
-  vectoangles(dir, bolt->s.angles);
-  VectorScale(dir, speed, bolt->velocity);
-  bolt->movetype = MOVETYPE_FLYMISSILE;
-  bolt->clipmask = MASK_SHOT;
-  bolt->solid = SOLID_BBOX;
-  VectorClear(bolt->mins);
-  VectorClear(bolt->maxs);
-  bolt->s.effects = EF_BFG | EF_ANIM_ALLFAST;
-  bolt->s.sound = gi.soundindex("misc/lasfly.wav");
-  bolt->s.modelindex = gi.modelindex("models/objects/laser/tris.md2");
-  bolt->owner = self;
-  bolt->touch = deatomizer_touch;
-  bolt->nextthink = level.time + 8000 / speed;
-  bolt->think = G_FreeEdict;
-  bolt->dmg = damage;
-  bolt->radius_dmg = splash_damage;
-  bolt->dmg_radius = damage_radius;
-  bolt->classname = "deatomizer bolt";
-
-  if (self->client)
-    check_dodge(self, bolt->s.origin, dir, speed);
-
-  gi.linkentity(bolt);
-}
-
 /*
 =================
 plasma_bolt_touch
@@ -1164,7 +1098,7 @@ static void plasma_bolt_touch(edict_t *self, edict_t *other, cplane_t *plane,
 	else
 	{
 		gi.WriteByte(svc_temp_entity);
-		gi.WriteByte(TE_PLASMA_EXPLOSION);
+		gi.WriteByte(TE_BLASTER2);
 		gi.WritePosition(self->s.origin);
 		if (plane)
 			gi.WriteDir(plane->normal);
@@ -1230,126 +1164,6 @@ void fire_plasma_bolt(edict_t *self, vec3_t start, vec3_t dir, int damage,
 	}
 }
 
-static void plasma_pistol_touch(edict_t *self, edict_t *other, cplane_t *plane,
-                                csurface_t *surf) {
-  vec3_t dir;
-
-  if (other == self->owner)
-    return;
-
-  if (surf && (surf->flags & SURF_SKY)) {
-    G_FreeEdict(self);
-    return;
-  }
-
-  if (other->takedamage) {
-    if (!VectorCompare(self->velocity, vec3_origin))
-      VectorNormalize2(self->velocity, dir);
-    else
-      VectorClear(dir);
-    T_Damage(other, self, self->owner, dir, self->s.origin,
-             plane ? plane->normal : vec3_origin, self->dmg, 0, DAMAGE_ENERGY,
-             MOD_PLASMA_PISTOL);
-  } else {
-    gi.WriteByte(svc_temp_entity);
-    gi.WriteByte(TE_PLASMA_EXPLOSION);
-    gi.WritePosition(self->s.origin);
-    gi.multicast(self->s.origin, MULTICAST_PVS);
-  }
-
-  G_FreeEdict(self);
-}
-
-void fire_plasma_pistol(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                        int speed) {
-  edict_t *bolt;
-
-  bolt = G_Spawn();
-  VectorCopy(start, bolt->s.origin);
-  VectorCopy(start, bolt->s.old_origin);
-  vectoangles(dir, bolt->s.angles);
-  VectorScale(dir, speed, bolt->velocity);
-  bolt->movetype = MOVETYPE_FLYMISSILE;
-  bolt->clipmask = MASK_SHOT;
-  bolt->solid = SOLID_BBOX;
-  VectorClear(bolt->mins);
-  VectorClear(bolt->maxs);
-  bolt->s.effects = EF_PLASMA;
-  bolt->s.sound = gi.soundindex("misc/lasfly.wav");
-  bolt->s.modelindex = gi.modelindex("models/objects/laser/tris.md2");
-  bolt->owner = self;
-  bolt->touch = plasma_pistol_touch;
-  bolt->nextthink = level.time + 8000 / speed;
-  bolt->think = G_FreeEdict;
-  bolt->dmg = damage;
-  bolt->classname = "plasma pistol";
-
-  if (self->client)
-    check_dodge(self, bolt->s.origin, dir, speed);
-
-  gi.linkentity(bolt);
-}
-
-static void plasma_rifle_touch(edict_t *self, edict_t *other, cplane_t *plane,
-                               csurface_t *surf) {
-  vec3_t dir;
-
-  if (other == self->owner)
-    return;
-
-  if (surf && (surf->flags & SURF_SKY)) {
-    G_FreeEdict(self);
-    return;
-  }
-
-  if (other->takedamage) {
-    if (!VectorCompare(self->velocity, vec3_origin))
-      VectorNormalize2(self->velocity, dir);
-    else
-      VectorClear(dir);
-    T_Damage(other, self, self->owner, dir, self->s.origin,
-             plane ? plane->normal : vec3_origin, self->dmg, 0, DAMAGE_ENERGY,
-             MOD_PLASMA_RIFLE);
-  } else {
-    gi.WriteByte(svc_temp_entity);
-    gi.WriteByte(TE_PLASMA_EXPLOSION);
-    gi.WritePosition(self->s.origin);
-    gi.multicast(self->s.origin, MULTICAST_PVS);
-  }
-
-  G_FreeEdict(self);
-}
-
-void fire_plasma_rifle(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                       int speed) {
-  edict_t *bolt;
-
-  bolt = G_Spawn();
-  VectorCopy(start, bolt->s.origin);
-  VectorCopy(start, bolt->s.old_origin);
-  vectoangles(dir, bolt->s.angles);
-  VectorScale(dir, speed, bolt->velocity);
-  bolt->movetype = MOVETYPE_FLYMISSILE;
-  bolt->clipmask = MASK_SHOT;
-  bolt->solid = SOLID_BBOX;
-  VectorClear(bolt->mins);
-  VectorClear(bolt->maxs);
-  bolt->s.effects = EF_ROTATE;
-  bolt->s.sound = gi.soundindex("misc/lasfly.wav");
-  bolt->s.modelindex = gi.modelindex("models/objects/laser/tris.md2");
-  bolt->owner = self;
-  bolt->touch = plasma_rifle_touch;
-  bolt->nextthink = level.time + 8000 / speed;
-  bolt->think = G_FreeEdict;
-  bolt->dmg = damage;
-  bolt->classname = "plasma rifle";
-
-  if (self->client)
-    check_dodge(self, bolt->s.origin, dir, speed);
-
-  gi.linkentity(bolt);
-}
-
 void fire_donut(edict_t *self, vec3_t origin, float damage_radius,
                 int splash_damage, edict_t *ignore) {
   edict_t *attacker;
@@ -1359,197 +1173,187 @@ void fire_donut(edict_t *self, vec3_t origin, float damage_radius,
                  MOD_DONUT);
 }
 
-static void dod_explode(edict_t *self) {
-  edict_t *ignore;
+/*
+=================
+dod_client_reset
 
-  if (!self->inuse)
-    return;
+Retail owner-client helper for DoD pulses; it zeros movement input
+while the pulse entity is active.
+=================
+*/
+static void dod_client_reset(edict_t *self, usercmd_t *ucmd)
+{
+	(void)self;
 
-  ignore = self->enemy;
+	if (!ucmd)
+		return;
 
-  self->s.sound = 0;
-  gi.sound(self, CHAN_AUTO, gi.soundindex("sound/dod/DoD.wav"), 1, ATTN_NORM,
-           0);
-
-  gi.WriteByte(svc_temp_entity);
-  gi.WriteByte(TE_EXPLOSION2);
-  gi.WritePosition(self->s.origin);
-  gi.multicast(self->s.origin, MULTICAST_PHS);
-
-  fire_donut(self, self->s.origin, self->dmg_radius, self->radius_dmg, ignore);
-
-  G_FreeEdict(self);
+	ucmd->forwardmove = 0;
+	ucmd->sidemove = 0;
+	ucmd->upmove = 0;
 }
 
-static void dod_touch(edict_t *self, edict_t *other, cplane_t *plane,
-                      csurface_t *surf) {
-  vec3_t dir;
+/*
+=================
+dod_pulse_think
 
-  if (other == self->owner)
-    return;
+Runs the retail DoD pulse expansion and repeated radius-damage loop.
+=================
+*/
+static void dod_pulse_think(edict_t *self)
+{
+	if (self->s.frame < 10)
+	{
+		self->s.frame++;
+		self->dmg += 25;
+		self->dmg_radius += 32.0f;
+		T_RadiusDamage(self, self->owner, self->dmg, self->owner,
+			self->dmg_radius, MOD_DONUT);
+		self->nextthink = level.time + 0.1f;
+		return;
+	}
 
-  if (surf && (surf->flags & SURF_SKY)) {
-    G_FreeEdict(self);
-    return;
-  }
+	self->think = G_FreeEdict;
+	self->nextthink = level.time + 0.1f;
 
-  self->enemy = NULL;
-
-  if (other->takedamage) {
-    self->enemy = other;
-
-    if (!VectorCompare(self->velocity, vec3_origin))
-      VectorNormalize2(self->velocity, dir);
-    else
-      VectorClear(dir);
-
-    T_Damage(other, self, self->owner, dir, self->s.origin,
-             plane ? plane->normal : vec3_origin, self->dmg, 0, DAMAGE_ENERGY,
-             MOD_DONUT);
-  }
-
-  dod_explode(self);
+	if (self->owner && self->owner->client)
+		self->owner->client->remote_view_cmd_hook = NULL;
 }
 
-void fire_dod(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed,
-              float damage_radius, int splash_damage) {
-  edict_t *bolt;
+/*
+=================
+fire_dod
 
-  bolt = G_Spawn();
-  VectorCopy(start, bolt->s.origin);
-  VectorCopy(start, bolt->s.old_origin);
-  vectoangles(dir, bolt->s.angles);
-  VectorScale(dir, speed, bolt->velocity);
-  bolt->movetype = MOVETYPE_FLYMISSILE;
-  bolt->clipmask = MASK_SHOT;
-  bolt->solid = SOLID_BBOX;
-  VectorClear(bolt->mins);
-  VectorClear(bolt->maxs);
-  bolt->s.effects = EF_PLASMA | EF_ANIM_ALLFAST;
-  bolt->s.renderfx = RF_FULLBRIGHT;
-  bolt->s.modelindex = gi.modelindex("models/objects/dod/tris.md2");
-  bolt->s.sound = gi.soundindex("sound/dod/DoD_hum.wav");
-  bolt->owner = self;
-  bolt->enemy = NULL;
-  bolt->touch = dod_touch;
-  bolt->nextthink = level.time + 2.0f;
-  bolt->think = dod_explode;
-  bolt->dmg = damage;
-  bolt->radius_dmg = splash_damage;
-  bolt->dmg_radius = damage_radius;
-  bolt->classname = "dod";
+Spawns the retail DoD pulse entity.
+=================
+*/
+void fire_dod(edict_t *self, vec3_t start, vec3_t dir)
+{
+	edict_t	*dod;
 
-  if (self->client)
-    check_dodge(self, bolt->s.origin, dir, speed);
+	(void)dir;
 
-  gi.linkentity(bolt);
+	dod = G_Spawn();
+	VectorCopy(start, dod->s.origin);
+	VectorCopy(start, dod->s.old_origin);
+	VectorSet(dod->mins, -16.0f, -16.0f, -16.0f);
+	VectorSet(dod->maxs, 16.0f, 16.0f, 16.0f);
+	VectorClear(dod->s.angles);
+	VectorClear(dod->velocity);
+	VectorClear(dod->avelocity);
+	dod->avelocity[YAW] = 90.0f;
+	dod->movetype = MOVETYPE_FLY;
+	dod->solid = SOLID_BBOX;
+	dod->takedamage = DAMAGE_NO;
+	dod->s.modelindex = gi.modelindex("models/objects/dod/tris.md2");
+	dod->s.frame = 0;
+	dod->s.renderfx = RF_FULLBRIGHT;
+	dod->owner = self;
+	dod->nextthink = level.time + 0.1f;
+	dod->think = dod_pulse_think;
+	dod->dmg = 50;
+	dod->dmg_radius = 64.0f;
+	dod->classname = "dod";
+
+	gi.sound(self, CHAN_WEAPON, gi.soundindex("dod/dod.wav"), 1, ATTN_NORM, 0);
+	gi.linkentity(dod);
+
+	if (self->client)
+		self->client->remote_view_cmd_hook = dod_client_reset;
 }
 
-static void hellfury_touch(edict_t *self, edict_t *other, cplane_t *plane,
-                           csurface_t *surf) {
-  vec3_t dir;
+/*
+=================
+obliterator_projectile_think
+=================
+*/
+static void obliterator_projectile_think(edict_t *self)
+{
+	VectorCopy(self->move_origin, self->movedir);
+	VectorMA(self->movedir, crandom(), self->pos1, self->movedir);
+	VectorMA(self->movedir, crandom(), self->pos2, self->movedir);
+	VectorScale(self->movedir, self->speed, self->velocity);
+	vectoangles(self->movedir, self->s.angles);
+	self->nextthink = level.time + 0.2f;
 
-  if (other == self->owner)
-    return;
-
-  if (surf && (surf->flags & SURF_SKY)) {
-    G_FreeEdict(self);
-    return;
-  }
-
-  if (other->takedamage) {
-    VectorNormalize2(self->velocity, dir);
-    T_Damage(other, self, self->owner, dir, self->s.origin,
-             plane ? plane->normal : vec3_origin, self->dmg, 0,
-             DAMAGE_ENERGY | DAMAGE_RADIUS, MOD_HELLFURY);
-  }
-
-  fire_donut(self, self->s.origin, self->dmg_radius, self->radius_dmg, other);
-
-  gi.WriteByte(svc_temp_entity);
-  gi.WriteByte(TE_EXPLOSION1);
-  gi.WritePosition(self->s.origin);
-  gi.multicast(self->s.origin, MULTICAST_PVS);
-
-  G_FreeEdict(self);
+	if (self->timestamp + 5.0f < level.time)
+		self->think = G_FreeEdict;
 }
 
-void fire_hellfury(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                   int speed, float damage_radius, int splash_damage) {
-  edict_t *bolt;
+/*
+=================
+fire_obliterator_projectile
+=================
+*/
+void fire_obliterator_projectile(edict_t *self, vec3_t start, vec3_t dir,
+                                 int damage, int speed, float damage_radius,
+                                 int splash_damage)
+{
+	edict_t	*rocket;
+	vec3_t	right, up;
 
-  bolt = G_Spawn();
-  VectorCopy(start, bolt->s.origin);
-  VectorCopy(start, bolt->s.old_origin);
-  vectoangles(dir, bolt->s.angles);
-  VectorScale(dir, speed, bolt->velocity);
-  bolt->movetype = MOVETYPE_FLYMISSILE;
-  bolt->clipmask = MASK_SHOT;
-  bolt->solid = SOLID_BBOX;
-  VectorClear(bolt->mins);
-  VectorClear(bolt->maxs);
-  bolt->s.effects = EF_ROCKET;
-  bolt->s.modelindex = gi.modelindex("models/objects/rocket/tris.md2");
-  bolt->owner = self;
-  bolt->touch = hellfury_touch;
-  bolt->nextthink = level.time + 8000 / speed;
-  bolt->think = G_FreeEdict;
-  bolt->dmg = damage;
-  bolt->radius_dmg = splash_damage;
-  bolt->dmg_radius = damage_radius;
-  bolt->classname = "hellfury";
+	rocket = G_Spawn();
+	VectorCopy(start, rocket->s.origin);
+	VectorCopy(start, rocket->s.old_origin);
+	VectorCopy(dir, rocket->move_origin);
+	vectoangles(dir, rocket->s.angles);
+	AngleVectors(rocket->s.angles, NULL, right, up);
+	VectorCopy(dir, rocket->movedir);
+	VectorCopy(right, rocket->pos1);
+	VectorCopy(up, rocket->pos2);
+	VectorScale(rocket->pos1, 0.1f, rocket->pos1);
+	VectorScale(rocket->pos2, 0.1f, rocket->pos2);
 
-  if (self->client)
-    check_dodge(self, bolt->s.origin, dir, speed);
+	VectorCopy(dir, self->movedir);
+	VectorMA(self->movedir, crandom(), self->pos1, self->movedir);
+	VectorMA(self->movedir, crandom(), self->pos2, self->movedir);
 
-  gi.linkentity(bolt);
+	rocket->speed = (float)speed;
+	VectorScale(rocket->movedir, rocket->speed, rocket->velocity);
+	rocket->movetype = MOVETYPE_FLYMISSILE;
+	rocket->clipmask = MASK_SHOT;
+	rocket->solid = SOLID_BBOX;
+	VectorClear(rocket->mins);
+	VectorClear(rocket->maxs);
+	rocket->s.effects |= EF_ROCKET;
+	rocket->s.modelindex = gi.modelindex("models/objects/rocket/tris.md2");
+	rocket->owner = self;
+	rocket->touch = rocket_touch;
+	rocket->dmg = damage;
+	rocket->radius_dmg = splash_damage;
+	rocket->dmg_radius = damage_radius;
+	rocket->style = MOD_OBLITERATOR;
+	rocket->count = MOD_OBLITERATOR;
+	rocket->s.sound = gi.soundindex("weapons/rockfly.wav");
+	rocket->classname = "rocket";
+	rocket->think = obliterator_projectile_think;
+	rocket->timestamp = level.time;
+	rocket->nextthink = level.time + 0.2f;
+
+	if (self->client)
+		check_dodge(self, rocket->s.origin, dir, speed);
+
+	gi.linkentity(rocket);
 }
-
-void fire_laser_cannon(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                       int kick) {
-  vec3_t end;
-  trace_t tr;
-
-  VectorMA(start, 8192, dir, end);
-  tr = gi.trace(start, NULL, NULL, end, self, MASK_SHOT);
-
-  if (tr.ent && tr.ent->takedamage) {
-    T_Damage(tr.ent, self, self, dir, tr.endpos, tr.plane.normal, damage, kick,
-             DAMAGE_ENERGY, MOD_LASERCANNON);
-  }
-
-  gi.WriteByte(svc_temp_entity);
-  gi.WriteByte(TE_BFG_LASER);
-  gi.WritePosition(start);
-  gi.WritePosition(tr.endpos);
-  gi.multicast(start, MULTICAST_PVS);
-}
-
-static void detpack_detonate(edict_t *self);
 
 /*
 =============
 detpack_die
 
-Explode the detpack when it is destroyed by external damage.
+Match the retail detpack damage gate before arming the delayed explosion.
 =============
 */
 static void detpack_die(edict_t *self, edict_t *inflictor, edict_t *attacker,
-                        int damage, vec3_t point) {
-  detpack_detonate(self);
-}
+			int damage, vec3_t point)
+{
+	if (damage < 70)
+	{
+		self->health = 70;
+		return;
+	}
 
-/*
-=============
-detpack_arm
-
-Clear the detpack's temporary flight handlers once it has landed and armed.
-=============
-*/
-static void detpack_arm(edict_t *self) {
-  self->think = NULL;
-  self->nextthink = 0;
-  self->touch = NULL;
+	self->think = detpack_detonate;
+	self->nextthink = level.time + 0.2f;
 }
 
 /*
@@ -1559,16 +1363,40 @@ detpack_detonate
 Create the explosion effect and apply the configured splash damage.
 =============
 */
-static void detpack_detonate(edict_t *self) {
-  gi.WriteByte(svc_temp_entity);
-  gi.WriteByte(TE_EXPLOSION2);
-  gi.WritePosition(self->s.origin);
-  gi.multicast(self->s.origin, MULTICAST_PHS);
+void detpack_detonate(edict_t *self)
+{
+	vec3_t	origin;
 
-  T_RadiusDamage(self, self->owner ? self->owner : self, self->radius_dmg, NULL,
-                 self->dmg_radius, MOD_DETPACK);
+	self->takedamage = DAMAGE_NO;
+	self->die = NULL;
 
-  G_FreeEdict(self);
+	if (self->owner && self->owner->client)
+		PlayerNoise (self->owner, self->s.origin, PNOISE_IMPACT);
+
+	T_RadiusDamage (self, self->owner ? self->owner : self, self->dmg, NULL,
+		self->dmg_radius, MOD_DETPACK);
+
+	VectorMA (self->s.origin, -0.02f, self->velocity, origin);
+
+	gi.WriteByte (svc_temp_entity);
+	if (self->waterlevel)
+	{
+		if (self->groundentity)
+			gi.WriteByte (TE_GRENADE_EXPLOSION_WATER);
+		else
+			gi.WriteByte (TE_ROCKET_EXPLOSION_WATER);
+	}
+	else
+	{
+		if (self->groundentity)
+			gi.WriteByte (TE_GRENADE_EXPLOSION);
+		else
+			gi.WriteByte (TE_ROCKET_EXPLOSION);
+	}
+	gi.WritePosition (origin);
+	gi.multicast (self->s.origin, MULTICAST_PHS);
+
+	G_FreeEdict (self);
 }
 
 /*
@@ -1579,24 +1407,26 @@ Handle the detpack coming to rest on world geometry.
 =============
 */
 static void detpack_touch(edict_t *self, edict_t *other, cplane_t *plane,
-                          csurface_t *surf) {
-  if (other == self->owner)
-    return;
+			csurface_t *surf)
+{
+	if (other == self->owner || self->groundentity)
+		return;
 
-  if (surf && (surf->flags & SURF_SKY)) {
-    G_FreeEdict(self);
-    return;
-  }
+	if (surf && (surf->flags & SURF_SKY))
+	{
+		G_FreeEdict (self);
+		return;
+	}
 
-  if (!self->groundentity) {
-    VectorClear(self->velocity);
-    VectorClear(self->avelocity);
-    self->movetype = MOVETYPE_NONE;
-    self->touch = NULL;
-    self->think = detpack_arm;
-    self->nextthink = level.time + 0.2f;
-    self->groundentity = other;
-  }
+	if (other == &g_edicts[0])
+	{
+		self->movetype = MOVETYPE_NONE;
+		VectorClear (self->velocity);
+		VectorClear (self->avelocity);
+		if (plane)
+			vectoangles (plane->normal, self->s.angles);
+		gi.linkentity (self);
+	}
 }
 
 #define MAX_ACTIVE_DETPACKS 5
@@ -1651,39 +1481,52 @@ Spawn the thrown detpack projectile and enforce the per-owner count cap.
 =============
 */
 edict_t *fire_detpack(edict_t *self, vec3_t start, vec3_t aimdir, int damage,
-                      int speed, float damage_radius) {
-  edict_t *charge;
+			float damage_radius, float speed, float timer)
+{
+	edict_t	*charge;
+	vec3_t	angles;
+	vec3_t	dir;
+	vec3_t	forward, right, up;
 
-  charge = G_Spawn();
-  VectorCopy(start, charge->s.origin);
-  VectorCopy(start, charge->s.old_origin);
-  vectoangles(aimdir, charge->s.angles);
-  VectorScale(aimdir, speed, charge->velocity);
-  charge->movetype = MOVETYPE_TOSS;
-  charge->clipmask = MASK_SHOT;
-  charge->solid = SOLID_BBOX;
-  VectorClear(charge->mins);
-  VectorClear(charge->maxs);
-  charge->s.modelindex = gi.modelindex("models/objects/detpack/tris.md2");
-  charge->s.effects = EF_GRENADE;
-  charge->owner = self;
-  charge->touch = detpack_touch;
-  charge->think = detpack_arm;
-  charge->nextthink = level.time + 0.2f;
-  charge->dmg = damage;
-  charge->radius_dmg = damage;
-  charge->dmg_radius = damage_radius;
-  charge->classname = "detpack";
-  charge->health = 70;
-  charge->max_health = 70;
-  charge->takedamage = DAMAGE_YES;
-  charge->die = detpack_die;
-  charge->timestamp = level.time;
+	vectoangles (aimdir, angles);
+	AngleVectors (angles, forward, right, up);
+	VectorNegate (aimdir, dir);
 
-  gi.linkentity(charge);
-  detpack_enforce_limit(charge);
+	charge = G_Spawn ();
+	VectorCopy (start, charge->s.origin);
+	VectorCopy (start, charge->s.old_origin);
+	VectorScale (aimdir, speed, charge->velocity);
+	VectorMA (charge->velocity, 20.0f + crandom() * 10.0f, up,
+		charge->velocity);
+	VectorMA (charge->velocity, crandom() * 10.0f, right, charge->velocity);
+	vectoangles (dir, charge->s.angles);
+	charge->s.angles[2] = -40.0f;
+	charge->movetype = MOVETYPE_TOSS;
+	charge->clipmask = MASK_SHOT;
+	charge->solid = SOLID_BBOX;
+	charge->flags |= FL_NO_KNOCKBACK;
+	VectorClear (charge->mins);
+	VectorClear (charge->maxs);
+	charge->avelocity[0] = -180.0f;
+	charge->s.modelindex = gi.modelindex ("models/objects/detpack/tris.md2");
+	charge->owner = self;
+	charge->touch = detpack_touch;
+	if (timer > 0.0f)
+	{
+		charge->think = detpack_detonate;
+		charge->nextthink = level.time + timer;
+	}
+	charge->dmg = damage;
+	charge->dmg_radius = damage_radius;
+	charge->classname = "detpack";
+	charge->takedamage = DAMAGE_YES;
+	charge->die = detpack_die;
+	charge->timestamp = level.time;
 
-  return charge;
+	gi.linkentity (charge);
+	detpack_enforce_limit (charge);
+
+	return charge;
 }
 
 /*
@@ -1738,40 +1581,18 @@ void SP_detpack(edict_t *self) {
   radius = self->dmg_radius;
 
   AngleVectors(self->s.angles, forward, NULL, NULL);
-  fire_detpack(&g_edicts[0], self->s.origin, forward, damage, speed, radius);
+  fire_detpack(&g_edicts[0], self->s.origin, forward, damage, radius,
+               (float)speed, 0.0f);
 
   G_FreeEdict(self);
 }
 
-/*
-=============
-remote_detonator_trigger
-
-Detonate every active detpack that belongs to the specified owner.
-=============
-*/
-void remote_detonator_trigger(edict_t *owner) {
-  int i;
-  edict_t *ent;
-
-  for (i = 1; i < globals.num_edicts; i++) {
-    ent = &g_edicts[i];
-    if (!ent->inuse)
-      continue;
-    if (!ent->classname)
-      continue;
-    if (strcmp(ent->classname, "detpack"))
-      continue;
-    if (ent->owner != owner)
-      continue;
-
-    detpack_detonate(ent);
-  }
-}
-
 #define MAX_ACTIVE_MINES 5
 
-static void proximity_mine_explode(edict_t *self, edict_t *target);
+static void proximity_mine_explode(edict_t *self);
+static void proximity_mine_think(edict_t *self);
+static void proximity_mine_laser_start(edict_t *self);
+static void proximity_mine_laser_think(edict_t *self);
 
 /*
 =============
@@ -1780,62 +1601,77 @@ mine_enforce_limit
 Ensure a single owner cannot exceed the mine count cap from the HLIL logic.
 =============
 */
-static void mine_enforce_limit(edict_t *mine) {
-  edict_t *ent;
-  edict_t *oldest;
-  int count;
-  int i;
+static void mine_enforce_limit(edict_t *mine)
+{
+	edict_t	*ent;
+	edict_t	*oldest;
+	int		count;
+	int		i;
 
-  if (!mine || !mine->owner)
-    return;
+	if (!mine || !mine->owner)
+		return;
 
-  oldest = mine;
-  count = 0;
+	oldest = mine;
+	count = 0;
 
-  for (i = 1; i < globals.num_edicts; i++) {
-    ent = &g_edicts[i];
-    if (!ent->inuse)
-      continue;
-    if (!ent->classname)
-      continue;
-    if (strcmp(ent->classname, "mine"))
-      continue;
-    if (ent->owner != mine->owner)
-      continue;
+	for (i = 1; i < globals.num_edicts; i++)
+	{
+		ent = &g_edicts[i];
+		if (!ent->inuse)
+			continue;
+		if (!ent->classname)
+			continue;
+		if (strcmp(ent->classname, "mine"))
+			continue;
+		if (ent->owner != mine->owner)
+			continue;
 
-    count++;
+		count++;
+		if (ent->timestamp <= oldest->timestamp)
+			oldest = ent;
+	}
 
-    if ((ent != mine) && (oldest == mine || ent->timestamp < oldest->timestamp))
-      oldest = ent;
-  }
-
-  if (count > MAX_ACTIVE_MINES && oldest)
-    proximity_mine_explode(oldest, NULL);
+	if (count > MAX_ACTIVE_MINES)
+		proximity_mine_explode(oldest);
 }
 
-static void proximity_mine_explode(edict_t *self, edict_t *target) {
-  if (target && target->takedamage) {
-    vec3_t dir;
-    VectorSubtract(target->s.origin, self->s.origin, dir);
-    VectorNormalize(dir);
-    T_Damage(target, self, self->owner ? self->owner : self, dir,
-             self->s.origin, vec3_origin, self->dmg, 0, DAMAGE_ENERGY,
-             MOD_MINE);
-  }
+/*
+=================
+proximity_mine_explode
+=================
+*/
+static void proximity_mine_explode(edict_t *self)
+{
+	vec3_t	origin;
 
-  gi.WriteByte(svc_temp_entity);
-  gi.WriteByte(TE_PLASMA_EXPLOSION);
-  gi.WritePosition(self->s.origin);
-  gi.multicast(self->s.origin, MULTICAST_PVS);
+	VectorClear(self->velocity);
 
-  if (self->dmg_radius > 0) {
-    self->takedamage = DAMAGE_NO;
-    self->die = NULL;
-    T_RadiusDamage(self, self->owner ? self->owner : self, self->radius_dmg,
-                   self, self->dmg_radius, MOD_MINE_SPLASH);
-  }
+	self->takedamage = DAMAGE_NO;
+	self->die = NULL;
+	T_RadiusDamage(self, self->owner ? self->owner : self, self->dmg, NULL,
+	               self->dmg_radius, MOD_MINE_SPLASH);
 
-  G_FreeEdict(self);
+	VectorMA(self->s.origin, -0.02f, self->velocity, origin);
+
+	gi.WriteByte(svc_temp_entity);
+	if (self->waterlevel)
+	{
+		if (self->groundentity)
+			gi.WriteByte(TE_GRENADE_EXPLOSION_WATER);
+		else
+			gi.WriteByte(TE_ROCKET_EXPLOSION_WATER);
+	}
+	else
+	{
+		if (self->groundentity)
+			gi.WriteByte(TE_GRENADE_EXPLOSION);
+		else
+			gi.WriteByte(TE_ROCKET_EXPLOSION);
+	}
+	gi.WritePosition(origin);
+	gi.multicast(self->s.origin, MULTICAST_PHS);
+
+	G_FreeEdict(self);
 }
 
 /*
@@ -1846,94 +1682,200 @@ Detonate the proximity mine when it is destroyed by damage.
 =============
 */
 static void proximity_mine_die(edict_t *self, edict_t *inflictor,
-                               edict_t *attacker, int damage, vec3_t point) {
-  (void)inflictor;
-  (void)damage;
-  (void)point;
+			       edict_t *attacker, int damage, vec3_t point)
+{
+	(void)inflictor;
+	(void)attacker;
+	(void)damage;
+	(void)point;
 
-  proximity_mine_explode(self, attacker);
+	if (self->think == proximity_mine_think)
+	{
+		self->think = proximity_mine_explode;
+		self->nextthink = level.time + 0.2f;
+	}
 }
 
-static void proximity_mine_think(edict_t *self) {
-  edict_t *ent;
+/*
+=================
+proximity_mine_think
+=================
+*/
+static void proximity_mine_think(edict_t *self)
+{
+	edict_t	*ent;
 
-  ent = NULL;
-  while ((ent = findradius(ent, self->s.origin, self->dmg_radius)) != NULL) {
-    if (ent == self->owner)
-      continue;
-    if (!ent->takedamage)
-      continue;
-    if (!(ent->svflags & SVF_MONSTER) && !ent->client)
-      continue;
+	ent = NULL;
+	while ((ent = findradius(ent, self->s.origin, 100.0f)) != NULL)
+	{
+		self->nextthink = level.time + 0.1f;
+		if (ent->takedamage != DAMAGE_AIM)
+			continue;
 
-    proximity_mine_explode(self, ent);
-    return;
-  }
+		self->think = proximity_mine_laser_start;
+		return;
+	}
 
-  self->nextthink = level.time + 0.1f;
+	self->nextthink = level.time + 0.1f;
 }
 
-static void proximity_mine_arm(edict_t *self) {
-  self->think = proximity_mine_think;
-  self->nextthink = level.time + 0.1f;
+/*
+=================
+proximity_mine_laser_start
+=================
+*/
+static void proximity_mine_laser_start(edict_t *self)
+{
+	self->movetype = MOVETYPE_FLY;
+	VectorClear(self->avelocity);
+	VectorClear(self->s.angles);
+	VectorSet(self->movedir, 0.0f, 0.0f, 1.0f);
+	VectorScale(self->movedir, 30.0f, self->velocity);
+	self->count = 0;
+	self->think = proximity_mine_laser_think;
+	self->nextthink = level.time + 1.0f;
+	self->s.sound = gi.soundindex("weapons/hgrenc1b.wav");
 }
 
+/*
+=================
+proximity_mine_laser_think
+=================
+*/
+static void proximity_mine_laser_think(edict_t *self)
+{
+	edict_t	*beam;
+	edict_t	*child;
+	edict_t	*source;
+	int		i;
+
+	if (self->count < 30)
+	{
+		if (!self->count)
+		{
+			self->solid = SOLID_NOT;
+			VectorClear(self->velocity);
+			VectorSet(self->avelocity, 0.0f, 74.0f, 0.0f);
+			gi.linkentity(self);
+
+			source = self;
+			for (i = 0; i < 4; i++)
+			{
+				child = G_Spawn();
+				child->owner = self->owner;
+				child->activator = self->owner;
+				child->spawnflags = 0x89;
+				AngleVectors(source->s.angles, NULL, child->movedir, NULL);
+				VectorNormalize(child->movedir);
+				vectoangles(child->movedir, child->s.angles);
+				VectorCopy(self->s.origin, child->s.origin);
+				child->dmg = 40;
+				child->classname = "mine laser";
+				source->chain = child;
+				target_laser_start(child);
+				gi.linkentity(child);
+				source = child;
+			}
+		}
+
+		source = self;
+		for (beam = self->chain; beam; beam = beam->chain)
+		{
+			AngleVectors(source->s.angles, NULL, beam->movedir, NULL);
+			VectorNormalize(beam->movedir);
+			vectoangles(beam->movedir, beam->s.angles);
+			beam->spawnflags |= 0x80000000;
+			source = beam;
+		}
+
+		self->count++;
+		self->nextthink = level.time + 0.1f;
+		return;
+	}
+
+	beam = self->chain;
+	for (i = 0; i < 4 && beam; i++)
+	{
+		child = beam->chain;
+		G_FreeEdict(beam);
+		beam = child;
+	}
+	self->chain = NULL;
+	self->think = proximity_mine_explode;
+	self->nextthink = level.time + 0.1f;
+}
+
+/*
+=================
+proximity_mine_touch
+=================
+*/
 static void proximity_mine_touch(edict_t *self, edict_t *other, cplane_t *plane,
-                                 csurface_t *surf) {
-  if (other == self->owner)
-    return;
+				 csurface_t *surf)
+{
+	(void)plane;
+	(void)surf;
 
-  if (surf && (surf->flags & SURF_SKY)) {
-    G_FreeEdict(self);
-    return;
-  }
+	gi.sound(self, CHAN_VOICE, gi.soundindex("weapons/hgrenb1a.wav"), 1,
+	         ATTN_NORM, 0);
+	self->nextthink = level.time + 0.1f;
 
-  if (!self->groundentity) {
-    VectorClear(self->velocity);
-    VectorClear(self->avelocity);
-    self->movetype = MOVETYPE_NONE;
-    self->touch = NULL;
-    self->think = proximity_mine_arm;
-    self->nextthink = level.time + 0.2f;
-    self->groundentity = other;
-  }
+	if (other->takedamage == DAMAGE_AIM)
+	{
+		self->think = proximity_mine_explode;
+		VectorClear(self->velocity);
+		VectorClear(self->avelocity);
+	}
 }
 
-edict_t *fire_proximity_mine(edict_t *self, vec3_t start, vec3_t aimdir,
-                             int damage, int speed, float damage_radius,
-                             int splash_damage) {
-  edict_t *mine;
+/*
+=================
+fire_proximity_mine
+=================
+*/
+void fire_proximity_mine(edict_t *self, vec3_t start, vec3_t aimdir, int speed)
+{
+	edict_t	*mine;
+	vec3_t	dir;
+	vec3_t	forward, right, up;
 
-  mine = G_Spawn();
-  VectorCopy(start, mine->s.origin);
-  VectorCopy(start, mine->s.old_origin);
-  vectoangles(aimdir, mine->s.angles);
-  VectorScale(aimdir, speed, mine->velocity);
-  mine->movetype = MOVETYPE_TOSS;
-  mine->clipmask = MASK_SHOT;
-  mine->solid = SOLID_BBOX;
-  VectorSet(mine->mins, -2, -2, -2);
-  VectorSet(mine->maxs, 2, 2, 2);
-  mine->s.effects = EF_GRENADE;
-  mine->s.modelindex = gi.modelindex("models/objects/mine/tris.md2");
-  mine->owner = self;
-  mine->touch = proximity_mine_touch;
-  mine->think = proximity_mine_arm;
-  mine->nextthink = level.time + 0.2f;
-  mine->dmg = damage;
-  mine->radius_dmg = splash_damage;
-  mine->dmg_radius = damage_radius;
-  mine->classname = "mine";
-  mine->takedamage = DAMAGE_YES;
-  mine->health = 10;
-  mine->max_health = 10;
-  mine->die = proximity_mine_die;
-  mine->timestamp = level.time;
+	vectoangles(aimdir, dir);
+	AngleVectors(dir, forward, right, up);
 
-  gi.linkentity(mine);
-  mine_enforce_limit(mine);
+	mine = G_Spawn();
+	VectorCopy(start, mine->s.origin);
+	VectorCopy(start, mine->s.old_origin);
+	vectoangles(aimdir, mine->s.angles);
+	VectorScale(aimdir, speed, mine->velocity);
+	VectorMA(mine->velocity, 200.0f + crandom() * 20.0f, up, mine->velocity);
+	VectorMA(mine->velocity, crandom() * 20.0f, right, mine->velocity);
+	VectorSet(mine->avelocity, 300.0f, 300.0f, 300.0f);
+	mine->movetype = MOVETYPE_TOSS;
+	mine->clipmask = MASK_SHOT;
+	mine->solid = SOLID_BBOX;
+	VectorSet(mine->mins, -2, -2, -2);
+	VectorSet(mine->maxs, 2, 2, 2);
+	mine->s.effects |= EF_GRENADE;
+	mine->s.modelindex = gi.modelindex("models/objects/mine/tris.md2");
+	mine->owner = self;
+	mine->touch = proximity_mine_touch;
+	mine->think = proximity_mine_think;
+	mine->nextthink = level.time + 0.1f;
+	mine->classname = "mine";
+	mine->takedamage = DAMAGE_YES;
+	mine->die = proximity_mine_die;
+	mine->health = 10;
+	mine->max_health = 10;
+	mine->dmg = 150;
+	mine->radius_dmg = 100;
+	mine->dmg_radius = 180.0f;
+	mine->timestamp = level.time;
 
-  return mine;
+	gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/hgrent1a.wav"), 1,
+	         ATTN_NORM, 0);
+	gi.linkentity(mine);
+
+	mine_enforce_limit(mine);
 }
 
 /*
@@ -1944,195 +1886,23 @@ Spawn a proximity mine projectile from a map entity.
 =============
 */
 void SP_mine(edict_t *self) {
-  vec3_t forward;
-  float radius;
-  int damage;
-  int speed;
-  int splash;
+	vec3_t	forward;
 
-  if (!self)
-    return;
+	if (!self)
+		return;
 
-  if (self->speed <= 0)
-    self->speed = 600;
-  if (!self->dmg)
-    self->dmg = 150;
-  if (!self->radius_dmg)
-    self->radius_dmg = 100;
-  if (self->dmg_radius <= 0.0f)
-    self->dmg_radius = 180.0f;
+	if (self->speed <= 0)
+		self->speed = 600;
+	if (!self->dmg)
+		self->dmg = 150;
+	if (!self->radius_dmg)
+		self->radius_dmg = 100;
+	if (self->dmg_radius <= 0.0f)
+		self->dmg_radius = 180.0f;
 
-  damage = self->dmg;
-  speed = (int)self->speed;
-  splash = self->radius_dmg;
-  radius = self->dmg_radius;
+	AngleVectors(self->s.angles, forward, NULL, NULL);
+	fire_proximity_mine(&g_edicts[0], self->s.origin, forward, (int)self->speed);
 
-  AngleVectors(self->s.angles, forward, NULL, NULL);
-  fire_proximity_mine(&g_edicts[0], self->s.origin, forward, damage, speed,
-                      radius, splash);
-
-  G_FreeEdict(self);
+	G_FreeEdict(self);
 }
 
-// Forward declarations
-void sub_10002f70(edict_t *arg1);
-int sub_100031e0(edict_t *arg1);
-int sub_10003280(edict_t *arg1);
-int sub_10003420(edict_t *arg1);
-int sub_100035d0(edict_t *arg1);
-int sub_100035f0(edict_t *arg1);
-int sub_10003760(edict_t *arg1);
-int sub_100036b0(edict_t *arg1);
-int sub_10003880(edict_t *arg1);
-
-// Helper for sub_100035d0
-int sub_100035d0(edict_t *arg1) {
-  if (arg1->noise_index2) // Using noise_index2 as a flag (0x254)
-    return sub_100031e0(arg1);
-  return sub_10003280(arg1);
-}
-
-// 10002f70
-void sub_10002f70(edict_t *arg1) {
-  edict_t *esi = arg1;
-  edict_t *eax_1;
-  vec3_t diff;
-  float dist;
-  float speed;
-  float travel;
-  float remaining;
-
-  switch (esi->oblivion.deatom_state) {
-  case 0:
-  case 1:
-    eax_1 = esi->deatom_target_ent;
-    if (!eax_1) {
-      esi->oblivion.deatom_f_32c = 0;
-      esi->teleport_time = -1.0f; // 0xbf800000
-      return;
-    }
-
-    VectorSubtract(eax_1->s.origin, esi->s.origin, diff);
-    esi->oblivion.deatom_f_34c = VectorLength(diff); // Distance
-    VectorNormalize2(diff,
-                     esi->oblivion.deatom_origin); // Direction (0x334)
-
-    speed = esi->oblivion.deatom_f_320;
-    if (speed <= 0)
-      speed = 1;
-
-    // *(esi i+ 0x330) = 2;
-    esi->oblivion.deatom_state = 2;
-
-    // Placeholder logic:
-    if (esi->oblivion.deatom_f_34c <= 0) {
-      // No distance to move?
-      gi.bprintf(2, "no main move\n");
-    }
-
-    // Update 0x32c accumulator
-    esi->oblivion.deatom_f_32c +=
-        0.1f; // data_1006c2e4 is likely 0.1 or FRAMETIME
-    break;
-
-  case 2:
-    if (esi->oblivion.deatom_f_34c <= 0) {
-      esi->oblivion.deatom_f_32c = 0;
-      // check if finished?
-      // ...
-      esi->oblivion.deatom_f_34c = 0;
-      esi->oblivion.deatom_state = 3;
-      esi->oblivion.deatom_f_32c += 0.1f;
-    }
-    break;
-
-  case 3:
-    if (esi->teleport_time != -1.0f) {
-      esi->oblivion.deatom_state = 1;
-      esi->teleport_time = 0;
-      esi->oblivion.deatom_f_32c += 0.1f;
-    } else {
-      esi->oblivion.deatom_f_32c = 0;
-      esi->oblivion.deatom_state = 0;
-    }
-    break;
-  }
-}
-
-// 100035f0 - Spawn function for control entity
-int sub_100035f0(edict_t *arg1) {
-  char *targetname = arg1->targetname;
-
-  arg1->solid = SOLID_NOT;
-  arg1->movetype = MOVETYPE_FLYMISSILE;
-  arg1->svflags = SVF_NOCLIENT;
-  memset(&arg1->mins, 0, 24);
-
-  if (!arg1->targetname) {
-    gi.bprintf(2, "%s with no targetname\n", arg1->classname);
-    arg1->targetname = "unused"; // Placeholder
-  }
-
-  if (arg1->teleport_time < 0) {
-    arg1->teleport_time = 3.0f;
-  }
-
-  arg1->deatom_think = sub_100035d0;
-  arg1->deatom_func_1f4 = sub_10003420;
-  arg1->s.modelindex = gi.modelindex("sprites/s_deatom1.sp2");
-  gi.linkentity(arg1);
-  return 0;
-}
-
-// 10003880 - Spawn function for target entity?
-int sub_10003880(edict_t *arg1) {
-  arg1->solid = SOLID_NOT;
-  arg1->movetype = MOVETYPE_FLYMISSILE;
-  arg1->svflags = SVF_NOCLIENT;
-  memset(&arg1->mins, 0, 24);
-
-  if (!arg1->targetname) {
-    gi.bprintf(2, "%s with no targetname\n", arg1->classname);
-    arg1->targetname = "unused";
-  }
-
-  arg1->noise_index2 = 0;
-  arg1->deatom_target_ent = NULL;
-
-  arg1->deatom_think = (int (*)(struct edict_s *))sub_10003760;
-  arg1->deatom_func_1f4 = sub_100036b0;
-  arg1->s.modelindex = gi.modelindex("sprites/s_deatom1.sp2");
-  gi.linkentity(arg1);
-  return 0;
-}
-
-// 100031e0
-int sub_100031e0(edict_t *arg1) {
-  // ... logic calling sub_10002f70
-  sub_10002f70(arg1);
-  return 1;
-}
-
-// 10003280
-int sub_10003280(edict_t *arg1) {
-  // ... logic calling sub_10002f70
-  sub_10002f70(arg1);
-  return 1;
-}
-
-// 10003420
-int sub_10003420(edict_t *arg1) { return 0; }
-
-// 10003760
-int sub_10003760(edict_t *arg1) {
-  // Logic ...
-  return 0;
-}
-
-// 100036b0
-int sub_100036b0(edict_t *arg1) { return 0; }
-
-// Exported spawn functions
-void SP_misc_deatomizer_control(edict_t *self) { sub_100035f0(self); }
-
-void SP_misc_deatomizer_target(edict_t *self) { sub_10003880(self); }

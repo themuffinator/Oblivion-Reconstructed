@@ -1044,11 +1044,14 @@ void ClientEndServerFrame (edict_t *ent)
 	// apply all the damage taken this frame
 	P_DamageFeedback (ent);
 
-	// determine the view offsets
-	SV_CalcViewOffset (ent);
+	if (!ent->client->remote_view_active)
+	{
+		// determine the view offsets
+		SV_CalcViewOffset (ent);
 
-	// determine the gun offsets
-	SV_CalcGunOffset (ent);
+		// determine the gun offsets
+		SV_CalcGunOffset (ent);
+	}
 
 	// determine the full screen color blend
 	// must be after viewoffset, so eye contents can be
@@ -1058,12 +1061,7 @@ void ClientEndServerFrame (edict_t *ent)
 	SV_CalcBlend (ent);
 	G_ScreenFade_AddBlend (ent);
 
-	// chase cam stuff
-	if (ent->client->resp.spectator)
-		G_SetSpectatorStats(ent);
-	else
-		G_SetStats (ent);
-	G_CheckChaseStats(ent);
+	G_SetStats (ent);
 
 	G_SetClientEvent (ent);
 

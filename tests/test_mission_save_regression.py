@@ -56,25 +56,6 @@ class MissionSaveRegressionTest(unittest.TestCase):
         mission_fields = self._parse_mission_fields()
 
         expected_names = {
-            "mission_controller",
-            "mission_last_controller",
-            "mission_prev_path",
-            "mission_path_target",
-            "mission_script_target",
-            "mission_controller_serial",
-            "mission_path_toggle",
-            "mission_controller_distance",
-            "mission_controller_resume",
-            "mission_path_wait",
-            "mission_path_time",
-            "mission_path_speed",
-            "mission_path_step_speed",
-            "mission_path_remaining",
-            "mission_path_state",
-            "mission_path_dir",
-            "mission_path_velocity",
-            "mission_custom_name",
-            "mission_custom_name_time",
             "mission_id",
             "mission_title",
             "mission_text",
@@ -90,29 +71,10 @@ class MissionSaveRegressionTest(unittest.TestCase):
         }
         self.assertTrue(
             expected_names.issubset(mission_fields.keys()),
-            "Missing mission path or objective fields from g_save serialization",
+            "Missing mission objective fields from g_save serialization",
         )
 
         expected_types = {
-            "mission_controller": "F_EDICT",
-            "mission_last_controller": "F_EDICT",
-            "mission_prev_path": "F_EDICT",
-            "mission_path_target": "F_EDICT",
-            "mission_script_target": "F_EDICT",
-            "mission_controller_serial": "F_INT",
-            "mission_path_toggle": "F_INT",
-            "mission_controller_distance": "F_FLOAT",
-            "mission_controller_resume": "F_FLOAT",
-            "mission_path_wait": "F_FLOAT",
-            "mission_path_time": "F_FLOAT",
-            "mission_path_speed": "F_FLOAT",
-            "mission_path_step_speed": "F_FLOAT",
-            "mission_path_remaining": "F_FLOAT",
-            "mission_path_state": "F_INT",
-            "mission_path_dir": "F_VECTOR",
-            "mission_path_velocity": "F_VECTOR",
-            "mission_custom_name": "F_LSTRING",
-            "mission_custom_name_time": "F_FLOAT",
             "mission_id": "F_LSTRING",
             "mission_title": "F_LSTRING",
             "mission_text": "F_LSTRING",
@@ -133,30 +95,9 @@ class MissionSaveRegressionTest(unittest.TestCase):
                 f"Field {name} should serialize as {expected_type}",
             )
 
-        controller = {"classname": "target_actor", "count": 42}
-        path_target = {"classname": "target_actor", "count": 17}
         actor = {"classname": "monster_actor", "count": 4}
         actor.update(
             {
-                "mission_controller": controller,
-                "mission_last_controller": controller,
-                "mission_prev_path": path_target,
-                "mission_path_target": path_target,
-                "mission_script_target": None,
-                "mission_controller_serial": controller["count"],
-                "mission_path_toggle": 1,
-                "mission_controller_distance": 256.0,
-                "mission_controller_resume": 3.5,
-                "mission_path_wait": 2.5,
-                "mission_path_time": 12.0,
-                "mission_path_speed": 220.0,
-                "mission_path_step_speed": 120.0,
-                "mission_path_remaining": 640.0,
-                "mission_path_state": 2,
-                "mission_path_dir": (0.25, -0.5, 0.75),
-                "mission_path_velocity": (-24.0, 32.0, 12.0),
-                "mission_custom_name": "Escort Alpha",
-                "mission_custom_name_time": 5.25,
                 "mission_id": "a99",
                 "mission_title": "Secure the waypoint",
                 "mission_text": "Lead the squad to the next objective.",
@@ -173,32 +114,55 @@ class MissionSaveRegressionTest(unittest.TestCase):
         )
 
         actor["mission_timer_start"] -= 12
-        actor["mission_path_toggle"] ^= 1
 
-        entities = [controller, path_target, actor]
+        entities = [actor]
         index_map = {id(ent): idx for idx, ent in enumerate(entities)}
         pre_save_snapshot = self._snapshot_fields(actor, mission_fields, index_map)
 
         serialized_actor = self._serialize_entity(actor, mission_fields, index_map)
 
         loaded_entities = [
-            {"classname": controller["classname"], "count": controller["count"]},
-            {"classname": path_target["classname"], "count": path_target["count"]},
             {"classname": actor["classname"], "count": actor["count"]},
         ]
         lookup = {idx: ent for idx, ent in enumerate(loaded_entities)}
 
         restored_fields = self._restore_entity(serialized_actor, mission_fields, lookup)
-        loaded_entities[2].update(restored_fields)
+        loaded_entities[0].update(restored_fields)
 
         loaded_index_map = {id(ent): idx for idx, ent in enumerate(loaded_entities)}
-        post_load_snapshot = self._snapshot_fields(loaded_entities[2], mission_fields, loaded_index_map)
+        post_load_snapshot = self._snapshot_fields(loaded_entities[0], mission_fields, loaded_index_map)
 
         self.assertEqual(
             pre_save_snapshot,
             post_load_snapshot,
             "Mission-enabled actor fields should survive a save/load round-trip",
         )
+
+    def test_actor_path_fields_are_not_serialized(self) -> None:
+        mission_fields = self._parse_mission_fields()
+
+        for field_name in (
+            "mission_controller",
+            "mission_last_controller",
+            "mission_prev_path",
+            "mission_path_target",
+            "mission_script_target",
+            "mission_controller_serial",
+            "mission_path_toggle",
+            "mission_controller_distance",
+            "mission_controller_resume",
+            "mission_path_wait",
+            "mission_path_time",
+            "mission_path_speed",
+            "mission_path_step_speed",
+            "mission_path_remaining",
+            "mission_path_state",
+            "mission_path_dir",
+            "mission_path_velocity",
+            "mission_custom_name",
+            "mission_custom_name_time",
+        ):
+            self.assertNotIn(field_name, mission_fields)
 
 
 if __name__ == "__main__":

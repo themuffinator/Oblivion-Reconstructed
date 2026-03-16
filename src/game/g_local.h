@@ -27,21 +27,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // short, server-visible gclient_t and edict_t structures,
 // because we define the full size ones in this file
 #define GAME_INCLUDE
-// Oblivion specific Means of Death
-// Starting from 40 to avoid conflict with standard Q2 (0-33) and common mods
-#define MOD_DISINTEGRATOR 40
-#define MOD_DEATOMIZER 41
-#define MOD_DEATOMIZER_SPLASH 42
-#define MOD_PLASMA_PISTOL 43
-#define MOD_PLASMA_RIFLE 44
-#define MOD_DONUT 45
-#define MOD_HELLFURY 46
-#define MOD_LASERCANNON 47
-#define MOD_DETPACK 48
-#define MOD_MINE 49
-#define MOD_MINE_SPLASH 50
-#define MOD_REMOTE_DETONATOR 51
-#define MOD_REMOTE_CANNON 52
+// Retail Oblivion-specific Means of Death recovered from the player obituary
+// tables. `MOD_MINE` aliases the same numeric slot as `MOD_TARGET_LASER` and
+// is disambiguated by attacker context.
+#define MOD_MINE 30
+#define MOD_DEATOMIZER 35
+#define MOD_DISINTEGRATOR MOD_DEATOMIZER
+#define MOD_DEATOMIZER_SPLASH MOD_DEATOMIZER
+#define MOD_PLASMA_PISTOL 36
+#define MOD_PLASMA_RIFLE 37
+#define MOD_DETPACK 38
+#define MOD_REMOTE_DETONATOR MOD_DETPACK
+#define MOD_OBLITERATOR 39
+#define MOD_LASERCANNON MOD_OBLITERATOR
+#define MOD_HELLFURY MOD_OBLITERATOR
+#define MOD_DONUT 40
+#define MOD_REMOTE_CANNON 41
+#define MOD_MINE_SPLASH 42
 
 // Spawnflags (SVF_) or Entity Flags (FL_)
 // Using available bits where possible.
@@ -67,11 +69,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define OBLIVION_ENABLE_MONSTER_SENTINEL 0
 #endif
 
-#ifndef OBLIVION_ENABLE_WEAPON_LASERCANNON
-#define OBLIVION_ENABLE_WEAPON_LASERCANNON 0
-#endif
-
 struct edict_s;
+typedef void remote_view_cmd_func_t(struct edict_s *ent, usercmd_t *ucmd);
 
 typedef struct edict_oblivion_ext_s {
   struct edict_s *controller;      // active mission / path controller
@@ -357,7 +356,6 @@ typedef struct {
 #define WEAP_PLASMA_PISTOL 12
 #define WEAP_PLASMA_RIFLE 13
 #define WEAP_HELLFURY 14
-#define WEAP_LASERCANNON 15
 #define WEAP_DEATOMIZER 16
 #define WEAP_REMOTE_DETONATOR 17
 #define WEAP_DONUT 18
@@ -523,31 +521,6 @@ typedef struct {
   float maxpitch;
 } spawn_temp_t;
 
-typedef struct camera_state_s {
-  qboolean active;
-  qboolean freeze_players;
-  float default_wait;
-  float wait_override;
-  float stop_time; // 0 = indefinite
-  float speed;
-  float duration;
-  edict_t *initial_corner;
-  edict_t *current_corner;
-  edict_t *target_corner;
-  edict_t *focus; // static look target
-  edict_t *track; // dynamic entity to look at
-  edict_t *activator;
-  float move_start_time;
-  float move_duration;
-  vec3_t move_start;
-  vec3_t move_end;
-  vec3_t start_angles;
-  vec3_t end_angles;
-  qboolean has_angle_goal;
-  int sound_loop;
-} camera_state_t;
-
-typedef struct camera_state_s camera_state_t;
 typedef struct rotate_train_state_s rotate_train_state_t;
 
 typedef struct {
@@ -676,8 +649,9 @@ extern int body_armor_index;
 #define MOD_TRIGGER_HURT 31
 #define MOD_HIT 32
 #define MOD_TARGET_BLASTER 33
+#define MOD_TARGET_RAILGUN 34
 
-#define MOD_LASER_CANNON MOD_LASERCANNON
+#define MOD_LASER_CANNON MOD_OBLITERATOR
 #define MOD_FRIENDLY_FIRE 0x8000000
 
 extern int meansOfDeath;
@@ -792,6 +766,7 @@ void SetRespawn(edict_t *ent, float delay);
 void ChangeWeapon(edict_t *ent);
 void SpawnItem(edict_t *ent, gitem_t *item);
 void Think_Weapon(edict_t *ent);
+void Oblivion_UpdateWeaponRegen(edict_t *ent);
 int ArmorIndex(edict_t *ent);
 int PowerArmorType(edict_t *ent);
 gitem_t *GetItemByIndex(int index);
@@ -802,9 +777,6 @@ qboolean Pickup_RTDU(edict_t *ent, edict_t *other);
 void rtdu_use(edict_t *ent, gitem_t *item);
 void Drop_RTDU(edict_t *ent, gitem_t *item);
 void Drop_General(edict_t *ent, gitem_t *item);
-void RTDU_RunFrame(void);
-void RTDU_PlayerDisconnect(edict_t *ent);
-void RTDU_PlayerDie(edict_t *ent);
 
 //
 // g_utils.c
@@ -967,30 +939,22 @@ void fire_rocket(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed,
 void fire_oblivion_rocket(edict_t *self, vec3_t start, vec3_t dir, int damage,
                           int speed, float damage_radius, int radius_damage,
                           int direct_mod, int splash_mod);
+void fire_obliterator_projectile(edict_t *self, vec3_t start, vec3_t dir,
+                                 int damage, int speed, float damage_radius,
+                                 int splash_damage);
 void fire_rail(edict_t *self, vec3_t start, vec3_t aimdir, int damage,
                int kick);
 void fire_bfg(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed,
               float damage_radius);
-void fire_deatomizer(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                     int speed, float damage_radius, int splash_damage);
-void fire_plasma_pistol(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                        int speed);
-void fire_plasma_rifle(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                       int speed);
-void fire_hellfury(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                   int speed, float damage_radius, int splash_damage);
-void fire_dod(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed,
-              float damage_radius, int splash_damage);
+void fire_dod(edict_t *self, vec3_t start, vec3_t dir);
 void fire_donut(edict_t *self, vec3_t origin, float damage_radius,
                 int splash_damage, edict_t *ignore);
-void fire_laser_cannon(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                       int kick);
+void detpack_detonate(edict_t *self);
 edict_t *fire_detpack(edict_t *self, vec3_t start, vec3_t aimdir, int damage,
-                      int speed, float damage_radius);
-void remote_detonator_trigger(edict_t *owner);
-edict_t *fire_proximity_mine(edict_t *self, vec3_t start, vec3_t aimdir,
-                             int damage, int speed, float damage_radius,
-                             int splash_damage);
+                      float damage_radius, float speed, float timer);
+void target_laser_start(edict_t *self);
+void fire_proximity_mine(edict_t *self, vec3_t start, vec3_t aimdir,
+                         int speed);
 
 //
 // g_ptrail.c
@@ -1032,14 +996,17 @@ qboolean SV_FilterPacket(char *from);
 void ClientEndServerFrame(edict_t *ent);
 void Camera_ClientPreFrame(edict_t *ent);
 void Camera_ClientPostFrame(edict_t *ent);
+void RemoteView_Begin(edict_t *ent, edict_t *viewent);
+void RemoteView_End(edict_t *ent);
+void RemoteView_AttachController(edict_t *ent, edict_t *viewent,
+	remote_view_cmd_func_t *cmd_hook);
+void RemoteView_DetachController(edict_t *ent, edict_t *viewent);
 
 //
 // p_hud.c
 //
 void MoveClientToIntermission(edict_t *client);
 void G_SetStats(edict_t *ent);
-void G_SetSpectatorStats(edict_t *ent);
-void G_CheckChaseStats(edict_t *ent);
 void ValidateSelectedItem(edict_t *ent);
 void DeathmatchScoreboardMessage(edict_t *client, edict_t *killer);
 
@@ -1066,14 +1033,6 @@ void G_RunEntity(edict_t *ent);
 //
 void SaveClientData(void);
 void FetchClientEntData(edict_t *ent);
-
-//
-// g_chase.c
-//
-void UpdateChaseCam(edict_t *ent);
-void ChaseNext(edict_t *ent);
-void ChasePrev(edict_t *ent);
-void GetChaseTarget(edict_t *ent);
 
 //============================================================================
 
@@ -1108,13 +1067,14 @@ typedef struct {
   int max_shells;
   int max_rockets;
   int max_grenades;
+  int max_mines;
   int max_cells;
   int max_slugs;
-  int max_mines;
-  int max_detpacks;
-  int max_dods;
   int max_pistolplasma;
   int max_rifleplasma;
+  int max_detpacks;
+  int max_dods;
+  int plasma_rifle_regen_divisor; // retail pers slot at +0x710; incremented by Pickup_RiflePlasma
 
   gitem_t *weapon;
   gitem_t *lastweapon;
@@ -1222,17 +1182,23 @@ struct gclient_s {
 
   float respawn_time; // can respawn when time > this
 
-  edict_t *chase_target; // player we are chasing
-  qboolean update_chase; // need to update chase info?
+	edict_t *remote_view_aux_entity; // retail +0xF04 unresolved tail slot
+	qboolean remote_view_aux_flag; // retail +0xF08 unresolved tail slot
 
-  struct {
-    edict_t *turret;     // active RTDU turret entity
-    float next_use_time; // debounce between deploy / recall
-  } rtdu;
-
-  edict_t *camera;        // active cutscene camera
-  qboolean camera_freeze; // freeze movement while camera active
-  float camera_endtime;   // when camera should release view
+	// retail-only dummy-body / remote-view behavioral aliases
+	qboolean remote_view_active;
+	void (*remote_view_cmd_hook)(struct edict_s *ent, usercmd_t *ucmd);
+	edict_t *remote_view_body;
+	union {
+		edict_t *remote_view_entity; // retail +0xF18 shared tracked-entity slot
+		struct {
+			edict_t *turret; // source-side RTDU alias for the shared tracked-entity slot
+		} rtdu;
+	};
+	int remote_view_state_1;
+	int remote_view_state_2;
+	float remote_view_timer;
+	int remote_view_saved_gunindex;
 };
 
 struct edict_s {
@@ -1366,7 +1332,6 @@ struct edict_s {
   edict_t *mynoise; // can go in client only
   edict_t *mynoise2;
 
-  camera_state_t *camera_state;
   rotate_train_state_t *rotate_train;
 
   int noise_index;
@@ -1409,5 +1374,5 @@ struct edict_s {
 void fire_deatom(edict_t *self, vec3_t start, vec3_t dir, int damage,
                  int speed);
 void monster_fire_deatom(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                         int speed, int flashtype);
+                         int speed);
 void monster_footstep(edict_t *self);

@@ -37,7 +37,7 @@ void MissionMenu_BuildObjectiveLayout (char *buffer, size_t size)
         length = 0;
         y = 54;
 
-        Com_sprintf (buffer + length, size - length, "xv 0 yv %d string2 \"Objectives\" ", y);
+        Com_sprintf (buffer + length, size - length, "xv 0 yv %d cstring2 \"Objectives\" ", y);
         length += strlen (buffer + length);
         y += 10;
 
@@ -45,7 +45,7 @@ void MissionMenu_BuildObjectiveLayout (char *buffer, size_t size)
         if (count <= 0)
         {
                 if (length < size)
-                Com_sprintf (buffer + length, size - length, "xv 0 yv %d string \"No active objectives\" ", y);
+                Com_sprintf (buffer + length, size - length, "xv 0 yv %d cstring \"No active objectives\" ", y);
                 length += strlen (buffer + length);
                 return;
         }
@@ -75,14 +75,14 @@ void MissionMenu_BuildObjectiveLayout (char *buffer, size_t size)
                 }
 
                 if (length < size)
-                        Com_sprintf (buffer + length, size - length, "xv 8 yv %d string2 \"%s %s\" ", y, marker, obj->title);
+                        Com_sprintf (buffer + length, size - length, "xv 0 yv %d cstring2 \"%s %s\" ", y, marker, obj->title);
                         length += strlen (buffer + length);
                 y += 10;
 
                 if (obj->text[0])
                 {
                         if (length < size)
-                                Com_sprintf (buffer + length, size - length, "xv 16 yv %d string \"%s\" ", y, obj->text);
+                                Com_sprintf (buffer + length, size - length, "xv 0 yv %d cstring \"%s\" ", y, obj->text);
                                 length += strlen (buffer + length);
                         y += 8;
                 }
@@ -93,7 +93,7 @@ void MissionMenu_BuildObjectiveLayout (char *buffer, size_t size)
                         if (seconds < 0)
                                 seconds = 0;
                         if (length < size)
-                                Com_sprintf (buffer + length, size - length, "xv 16 yv %d string \"Time Remaining: %ds\" ", y, seconds);
+                                Com_sprintf (buffer + length, size - length, "xv 0 yv %d cstring \"Time Remaining: %ds\" ", y, seconds);
                                 length += strlen (buffer + length);
                         y += 8;
                 }

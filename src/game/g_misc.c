@@ -419,6 +419,8 @@ void ThrowGib (edict_t *self, char *gibname, int damage, int type)
 	gib->s.origin[2] = origin[2] + crandom() * size[2];
 
 	gi.setmodel (gib, gibname);
+	gib->s.frame = 0;
+	VectorCopy (gib->s.origin, gib->s.old_origin);
 	gib->solid = SOLID_NOT;
 	gib->s.effects |= EF_GIB;
 	gib->flags |= FL_NO_KNOCKBACK;
@@ -457,6 +459,7 @@ void ThrowHead (edict_t *self, char *gibname, int damage, int type)
 
 	self->s.skinnum = 0;
 	self->s.frame = 0;
+	VectorCopy (self->s.origin, self->s.old_origin);
 	VectorClear (self->mins);
 	VectorClear (self->maxs);
 
@@ -466,6 +469,7 @@ void ThrowHead (edict_t *self, char *gibname, int damage, int type)
 	self->s.effects |= EF_GIB;
 	self->s.effects &= ~EF_FLIES;
 	self->s.sound = 0;
+	self->s.event = EV_OTHER_TELEPORT;
 	self->flags |= FL_NO_KNOCKBACK;
 	self->svflags &= ~SVF_MONSTER;
 	self->takedamage = DAMAGE_YES;
@@ -514,6 +518,7 @@ void ThrowClientHead (edict_t *self, int damage)
 
 	self->s.origin[2] += 32;
 	self->s.frame = 0;
+	VectorCopy (self->s.origin, self->s.old_origin);
 	gi.setmodel (self, gibname);
 	VectorSet (self->mins, -16, -16, 0);
 	VectorSet (self->maxs, 16, 16, 16);
@@ -522,6 +527,7 @@ void ThrowClientHead (edict_t *self, int damage)
 	self->solid = SOLID_NOT;
 	self->s.effects = EF_GIB;
 	self->s.sound = 0;
+	self->s.event = EV_OTHER_TELEPORT;
 	self->flags |= FL_NO_KNOCKBACK;
 
 	self->movetype = MOVETYPE_BOUNCE;
@@ -607,6 +613,11 @@ void BecomeExplosion2 (edict_t *self)
 Target: next path corner
 Pathtarget: gets used when an entity that has
 	this path_corner targeted touches it
+wait: pause before advancing to the next corner
+Oblivion func_rotate_train keys:
+	"duration" overrides the next leg travel time
+	"rotate" takes x y z angle deltas for the next leg
+	"speeds" takes x y z angular speeds for the next leg
 */
 
 void path_corner_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)

@@ -632,7 +632,8 @@ void monster_start_go(edict_t *self) {
       self->target = NULL;
       self->monsterinfo.pausetime = 100000000;
       self->monsterinfo.stand(self);
-    } else if (strcmp(self->movetarget->classname, "path_corner") == 0) {
+    } else if ((strcmp(self->movetarget->classname, "path_corner") == 0) ||
+               (strcmp(self->movetarget->classname, "target_actor") == 0)) {
       VectorSubtract(self->goalentity->s.origin, self->s.origin, v);
       self->ideal_yaw = self->s.angles[YAW] = vectoyaw(v);
       self->monsterinfo.walk(self);
@@ -908,15 +909,9 @@ void fire_deatom(edict_t *self, vec3_t start, vec3_t dir, int damage,
 }
 
 void monster_fire_deatom(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                         int speed, int flashtype) {
-  // Konig: if (EMPNukeCheck(self, self->s.origin)) ...
-  // Assuming EMPNukeCheck exists or omitting.
-
-  fire_deatom(self, start, dir, damage, speed);
-  gi.WriteByte(svc_muzzleflash2);
-  gi.WriteShort(self - g_edicts);
-  gi.WriteByte(flashtype);
-  gi.multicast(start, MULTICAST_PVS);
+	int speed)
+{
+	fire_deatom(self, start, dir, damage, speed);
 }
 
 /*

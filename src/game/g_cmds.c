@@ -71,11 +71,6 @@ void SelectNextItem (edict_t *ent, int itflags)
 
 	cl = ent->client;
 
-	if (cl->chase_target) {
-		ChaseNext(ent);
-		return;
-	}
-
 	// scan  for the next valid one
 	for (i=1 ; i<=MAX_ITEMS ; i++)
 	{
@@ -102,11 +97,6 @@ void SelectPrevItem (edict_t *ent, int itflags)
 	gitem_t		*it;
 
 	cl = ent->client;
-
-	if (cl->chase_target) {
-		ChasePrev(ent);
-		return;
-	}
 
 	// scan  for the next valid one
 	for (i=1 ; i<=MAX_ITEMS ; i++)
@@ -388,6 +378,35 @@ void Cmd_Noclip_f (edict_t *ent)
 
 /*
 ==================
+Cmd_Use_TogglePair
+
+Mirror the retail use-command pair toggles before normal item dispatch.
+==================
+*/
+static void Cmd_Use_TogglePair (edict_t *ent, char **requested_name,
+	char *alternate_name)
+{
+	gitem_t	*it;
+
+	if (!ent || !ent->client || !requested_name || !*requested_name)
+		return;
+
+	if (ent->client->pers.weapon &&
+		ent->client->pers.weapon->pickup_name &&
+		!Q_stricmp(*requested_name, ent->client->pers.weapon->pickup_name))
+	{
+		*requested_name = alternate_name;
+		return;
+	}
+
+	it = FindItem(*requested_name);
+	if (it && !ent->client->pers.inventory[ITEM_INDEX(it)])
+		*requested_name = alternate_name;
+}
+
+
+/*
+==================
 Cmd_Use_f
 
 Use an inventory item
@@ -400,6 +419,28 @@ void Cmd_Use_f (edict_t *ent)
 	char		*s;
 
 	s = gi.args();
+
+	if (!Q_stricmp (s, "Grenades"))
+		Cmd_Use_TogglePair (ent, &s, "Mines");
+	else if (!Q_stricmp (s, "Mines"))
+		Cmd_Use_TogglePair (ent, &s, "Grenades");
+	else if (!Q_stricmp (s, "Machinegun"))
+		Cmd_Use_TogglePair (ent, &s, "Plasma Rifle");
+	else if (!Q_stricmp (s, "Plasma Rifle"))
+		Cmd_Use_TogglePair (ent, &s, "Machinegun");
+	else if (!Q_stricmp (s, "Deatomizer"))
+		Cmd_Use_TogglePair (ent, &s, "Hyperblaster");
+	else if (!Q_stricmp (s, "Hyperblaster"))
+		Cmd_Use_TogglePair (ent, &s, "Deatomizer");
+	else if (!Q_stricmp (s, "Obliterator"))
+		Cmd_Use_TogglePair (ent, &s, "BFG10K");
+	else if (!Q_stricmp (s, "BFG10K"))
+		Cmd_Use_TogglePair (ent, &s, "Obliterator");
+	else if (!Q_stricmp (s, "Detonation Pack"))
+		Cmd_Use_TogglePair (ent, &s, "Remote Detonator");
+	else if (!Q_stricmp (s, "Rocket Launcher"))
+		Cmd_Use_TogglePair (ent, &s, "HellFury");
+
 	it = FindItem (s);
 	if (!it)
 	{
@@ -419,6 +460,159 @@ void Cmd_Use_f (edict_t *ent)
 	}
 
 	it->use (ent, it);
+}
+
+
+/*
+==================
+Cmd_UseToggle_AppendToken
+
+Append one parsed usetoggle token into the retail-sized scratch buffer.
+==================
+*/
+static void Cmd_UseToggle_AppendToken (char *buffer, size_t buffer_size,
+	const char *token, size_t token_length)
+{
+	size_t		buffer_length;
+
+	if (!buffer || !buffer_size || !token || !token_length)
+		return;
+
+	buffer_length = strlen(buffer);
+	if (buffer_length >= buffer_size - 1)
+		return;
+
+	if (token_length > buffer_size - buffer_length - 1)
+		token_length = buffer_size - buffer_length - 1;
+
+	memcpy(buffer + buffer_length, token, token_length);
+	buffer[buffer_length + token_length] = '\0';
+}
+
+
+/*
+==================
+Cmd_UseToggle_ParseName
+
+Retail usetoggle treats apostrophes as multi-argv item delimiters.
+==================
+*/
+static void Cmd_UseToggle_ParseName (char *buffer, size_t buffer_size,
+	int *arg_index, int argc)
+{
+	char		*arg;
+	size_t		length;
+
+	if (!buffer || !buffer_size || !arg_index)
+		return;
+
+	buffer[0] = '\0';
+	if (*arg_index >= argc)
+		return;
+
+	arg = gi.argv (*arg_index);
+	if (!arg)
+		return;
+
+	if (arg[0] != '\'')
+	{
+		Com_sprintf (buffer, buffer_size, "%s", arg);
+		return;
+	}
+
+	arg++;
+	while (1)
+	{
+		length = strlen(arg);
+		if (length && arg[length - 1] == '\'')
+		{
+			Cmd_UseToggle_AppendToken (buffer, buffer_size, arg, length - 1);
+			return;
+		}
+
+		Cmd_UseToggle_AppendToken (buffer, buffer_size, arg, length);
+		Cmd_UseToggle_AppendToken (buffer, buffer_size, " ", 1);
+
+		(*arg_index)++;
+		if (*arg_index >= argc)
+			return;
+
+		arg = gi.argv (*arg_index);
+		if (!arg)
+			return;
+	}
+}
+
+
+/*
+==================
+Cmd_UseToggle_f
+
+Cycle across the requested retail usetoggle items until one selects.
+==================
+*/
+void Cmd_UseToggle_f (edict_t *ent)
+{
+	int			argc;
+	int			arg_index;
+	int			current_index;
+	int			search_index;
+	gitem_t		*it;
+	char		item_name[64];
+
+	argc = gi.argc ();
+	current_index = 0;
+	arg_index = 1;
+
+	if (argc > 1)
+	{
+		do
+		{
+			Cmd_UseToggle_ParseName (item_name, sizeof(item_name), &arg_index, argc);
+			it = FindItem (item_name);
+			if (it && it->use && ent->client->pers.weapon == it)
+			{
+				current_index = arg_index;
+				break;
+			}
+
+			arg_index++;
+		}
+		while (arg_index < argc);
+	}
+
+	search_index = 1;
+	arg_index = current_index;
+	if (argc > 1)
+	{
+		do
+		{
+			arg_index++;
+			if (arg_index == argc)
+			{
+				if (!current_index)
+					return;
+
+				arg_index = 1;
+			}
+
+			Cmd_UseToggle_ParseName (item_name, sizeof(item_name), &arg_index, argc);
+			it = FindItem (item_name);
+			if (it && it->use)
+			{
+				if (!ent->client->pers.inventory[ITEM_INDEX(it)])
+					gi.cprintf (ent, PRINT_HIGH, "Out of item: %s\n", item_name);
+				else
+					it->use (ent, it);
+
+				if (ent->client->newweapon == it)
+					return;
+			}
+
+			search_index++;
+		}
+		while (search_index < argc);
+	}
 }
 
 
@@ -945,6 +1139,8 @@ void ClientCommand (edict_t *ent)
 
 	if (Q_stricmp (cmd, "use") == 0)
 		Cmd_Use_f (ent);
+	else if (Q_stricmp (cmd, "usetoggle") == 0)
+		Cmd_UseToggle_f (ent);
 	else if (Q_stricmp (cmd, "drop") == 0)
 		Cmd_Drop_f (ent);
 	else if (Q_stricmp (cmd, "give") == 0)

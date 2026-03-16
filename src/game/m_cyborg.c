@@ -82,7 +82,6 @@ static void cyborg_melee(edict_t *self);
 static qboolean cyborg_check_range(edict_t *self);
 static qboolean cyborg_checkattack(edict_t *self);
 static void cyborg_pain(edict_t *self, edict_t *other, float kick, int damage);
-static void cyborg_die_select(edict_t *self);
 static void cyborg_die(edict_t *self, edict_t *inflictor, edict_t *attacker,
 	int damage, vec3_t point);
 static void cyborg_dead(edict_t *self);
@@ -126,8 +125,8 @@ mframe_t cyborg_frames_run[] = {
 	{ai_run, 6, NULL},
 	{ai_run, 23, cyborg_footstep},
 	{ai_run, 8, NULL},
-	{ai_run, 6, NULL},
-	{ai_run, 23, cyborg_footstep},
+	{ai_run, 6, cyborg_footstep},
+	{ai_run, 23, NULL},
 	{ai_run, 8, NULL}
 };
 mmove_t cyborg_move_run = {FRAME_run1, FRAME_run6, cyborg_frames_run, NULL};
@@ -297,7 +296,7 @@ static void cyborg_footstep(edict_t *self)
 {
 	int	n;
 
-	n = rand() % 3;
+	n = (rand() + 1) % 3;
 	if (n == 0)
 		gi.sound(self, CHAN_VOICE, sound_step1, 1, ATTN_NORM, 0);
 	else if (n == 1)
@@ -373,10 +372,8 @@ static void cyborg_run(edict_t *self)
 	if (self->monsterinfo.currentmove == &cyborg_move_pain2_end)
 	{
 		if (random() < 0.1f)
-		{
 			self->monsterinfo.currentmove = &cyborg_move_move;
-			return;
-		}
+		return;
 	}
 
 	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
@@ -399,9 +396,6 @@ static void cyborg_fire_right(edict_t *self)
 	vec3_t	dir;
 	vec3_t	offset;
 
-	if (!self->enemy)
-		return;
-
 	AngleVectors(self->s.angles, forward, right, NULL);
 	VectorSet(offset, 15, 12, 12);
 	G_ProjectSource(self->s.origin, offset, forward, right, start);
@@ -411,7 +405,7 @@ static void cyborg_fire_right(edict_t *self)
 	VectorSubtract(target, start, dir);
 	VectorNormalize(dir);
 
-	fire_deatom(self, start, dir, 50, 600);
+	monster_fire_deatom(self, start, dir, 50, 600);
 }
 
 /*
@@ -428,9 +422,6 @@ static void cyborg_fire_left(edict_t *self)
 	vec3_t	dir;
 	vec3_t	offset;
 
-	if (!self->enemy)
-		return;
-
 	AngleVectors(self->s.angles, forward, right, NULL);
 	VectorSet(offset, 15, -12, 12);
 	G_ProjectSource(self->s.origin, offset, forward, right, start);
@@ -440,7 +431,7 @@ static void cyborg_fire_left(edict_t *self)
 	VectorSubtract(target, start, dir);
 	VectorNormalize(dir);
 
-	fire_deatom(self, start, dir, 50, 600);
+	monster_fire_deatom(self, start, dir, 50, 600);
 }
 
 /*
@@ -457,20 +448,7 @@ static void cyborg_fire_both(edict_t *self)
 	vec3_t	dir;
 	vec3_t	offset;
 
-	if (!self->enemy)
-		return;
-
 	AngleVectors(self->s.angles, forward, right, NULL);
-
-	VectorSet(offset, 15, 12, 12);
-	G_ProjectSource(self->s.origin, offset, forward, right, start);
-
-	VectorCopy(self->enemy->s.origin, target);
-	target[2] += self->enemy->viewheight;
-	VectorSubtract(target, start, dir);
-	VectorNormalize(dir);
-
-	fire_deatom(self, start, dir, 50, 600);
 
 	VectorSet(offset, 15, -12, 12);
 	G_ProjectSource(self->s.origin, offset, forward, right, start);
@@ -480,7 +458,17 @@ static void cyborg_fire_both(edict_t *self)
 	VectorSubtract(target, start, dir);
 	VectorNormalize(dir);
 
-	fire_deatom(self, start, dir, 50, 600);
+	monster_fire_deatom(self, start, dir, 50, 600);
+
+	VectorSet(offset, 15, 12, 12);
+	G_ProjectSource(self->s.origin, offset, forward, right, start);
+
+	VectorCopy(self->enemy->s.origin, target);
+	target[2] += self->enemy->viewheight;
+	VectorSubtract(target, start, dir);
+	VectorNormalize(dir);
+
+	monster_fire_deatom(self, start, dir, 50, 600);
 }
 
 /*
@@ -490,12 +478,16 @@ cyborg_attack_start
 */
 static void cyborg_attack_start(edict_t *self)
 {
+	vec3_t	forward;
+
 	gi.sound(self, CHAN_VOICE, sound_sight, 1, ATTN_NORM, 0);
 
+	AngleVectors(self->s.angles, forward, NULL, NULL);
 	self->s.origin[2] += 1.0f;
+	VectorScale(forward, -100.0f, self->velocity);
 	self->velocity[2] = 250.0f;
-	self->monsterinfo.aiflags |= AI_MANUAL_STEERING;
 	self->groundentity = NULL;
+	self->monsterinfo.aiflags |= AI_MANUAL_STEERING;
 	self->touch = cyborg_touch;
 	self->monsterinfo.attack_finished = level.time + 3.0f;
 }
@@ -510,8 +502,8 @@ static void cyborg_attack_end(edict_t *self)
 	if (self->groundentity)
 	{
 		gi.sound(self, CHAN_WEAPON, sound_thud, 1, ATTN_NORM, 0);
-		self->monsterinfo.aiflags &= ~AI_MANUAL_STEERING;
 		self->monsterinfo.attack_finished = 0;
+		self->monsterinfo.aiflags &= ~AI_MANUAL_STEERING;
 	}
 }
 
@@ -527,23 +519,25 @@ static void cyborg_touch(edict_t *self, edict_t *other, cplane_t *plane,
 	vec3_t	point;
 	int		damage;
 
-	if (self->health <= 0)
+	if (self->health > 0)
 	{
-		self->touch = NULL;
-		return;
-	}
+		if (other->takedamage && VectorLength(self->velocity) > 400.0f)
+		{
+			VectorNormalize2(self->velocity, dir);
+			VectorMA(self->s.origin, self->maxs[0], dir, point);
+			damage = (int)(random() * 10.0f) + 40;
+			T_Damage(other, self, self, self->velocity, point, dir, damage,
+				damage, 0, MOD_UNKNOWN);
+		}
 
-	if (other->takedamage && VectorLength(self->velocity) >= 400.0f)
-	{
-		VectorNormalize2(self->velocity, dir);
-		VectorMA(self->s.origin, self->size[0], dir, point);
-		damage = (int)(random() * 10.0f) + 40;
-		T_Damage(other, self, self, dir, point, self->velocity, damage, damage,
-			0, MOD_UNKNOWN);
-	}
+		if (!M_CheckBottom(self))
+		{
+			if (!self->groundentity)
+				return;
 
-	if (!M_CheckBottom(self) && self->groundentity)
-		self->monsterinfo.nextframe = FRAME_attack401 + 5;
+			self->monsterinfo.nextframe = FRAME_attack401 + 5;
+		}
+	}
 
 	self->touch = NULL;
 }
@@ -618,9 +612,9 @@ static void cyborg_attack(edict_t *self)
 	if (r < 0.5f)
 		self->monsterinfo.currentmove = &cyborg_move_attack1;
 	else if (r < 0.7f)
-		self->monsterinfo.currentmove = &cyborg_move_attack2;
-	else
 		self->monsterinfo.currentmove = &cyborg_move_attack3;
+	else
+		self->monsterinfo.currentmove = &cyborg_move_attack2;
 }
 
 /*
@@ -635,7 +629,7 @@ static void cyborg_melee(edict_t *self)
 	r = random();
 	if (r < 0.6f)
 		self->monsterinfo.currentmove = &cyborg_move_melee1;
-	else if (r < 0.7f)
+	else if (random() < 0.7f)
 		self->monsterinfo.currentmove = &cyborg_move_melee2;
 	else
 		self->monsterinfo.currentmove = &cyborg_move_attack_backflip;
@@ -653,9 +647,6 @@ static qboolean cyborg_check_range(edict_t *self)
 	float	dist;
 
 	enemy = self->enemy;
-	if (!enemy)
-		return false;
-
 	if (self->absmin[2] > enemy->absmin[2] + enemy->size[2] * 0.75f)
 		return false;
 
@@ -683,19 +674,19 @@ cyborg_checkattack
 */
 static qboolean cyborg_checkattack(edict_t *self)
 {
-	if (!self->enemy || self->enemy->health <= 0)
-		return false;
-
-	if (range(self, self->enemy) == RANGE_MELEE)
+	if (self->enemy && self->enemy->health > 0)
 	{
-		self->monsterinfo.attack_state = AS_MELEE;
-		return true;
-	}
+		if (range(self, self->enemy) == RANGE_MELEE)
+		{
+			self->monsterinfo.attack_state = AS_MELEE;
+			return true;
+		}
 
-	if (cyborg_check_range(self))
-	{
-		self->monsterinfo.attack_state = AS_MISSILE;
-		return true;
+		if (cyborg_check_range(self))
+		{
+			self->monsterinfo.attack_state = AS_MISSILE;
+			return true;
+		}
 	}
 
 	return false;
@@ -733,24 +724,6 @@ static void cyborg_pain(edict_t *self, edict_t *other, float kick, int damage)
 
 /*
 =================
-cyborg_die_select
-=================
-*/
-static void cyborg_die_select(edict_t *self)
-{
-	float	r;
-
-	r = random();
-	if (r < 0.33f)
-		self->monsterinfo.currentmove = &cyborg_move_death1;
-	else if (r < 0.66f)
-		self->monsterinfo.currentmove = &cyborg_move_death2;
-	else
-		self->monsterinfo.currentmove = &cyborg_move_death3;
-}
-
-/*
-=================
 cyborg_die
 =================
 */
@@ -758,6 +731,7 @@ static void cyborg_die(edict_t *self, edict_t *inflictor, edict_t *attacker,
 	int damage, vec3_t point)
 {
 	int	n;
+	float	r;
 
 	if (meansOfDeath == 0x23)
 	{
@@ -789,8 +763,15 @@ static void cyborg_die(edict_t *self, edict_t *inflictor, edict_t *attacker,
 	gi.sound(self, CHAN_VOICE, sound_death, 1, ATTN_NORM, 0);
 	self->deadflag = DEAD_DEAD;
 	self->takedamage = DAMAGE_YES;
+	self->s.skinnum = 1;
 
-	cyborg_die_select(self);
+	r = random();
+	if (r < 0.33f)
+		self->monsterinfo.currentmove = &cyborg_move_death1;
+	else if (r < 0.66f)
+		self->monsterinfo.currentmove = &cyborg_move_death2;
+	else
+		self->monsterinfo.currentmove = &cyborg_move_death3;
 }
 
 /*
@@ -807,7 +788,7 @@ static void cyborg_dead(edict_t *self)
 	gi.linkentity(self);
 }
 
-/*QUAKED monster_cyborg (1 .5 0) (-16 -16 -38) (32 32 27) Ambush Trigger_Spawn
+/*QUAKED monster_cyborg (1 .5 0) (-16 -16 -38) (16 16 27) Ambush Trigger_Spawn
  * Sight Corpse
  */
 /*
@@ -847,26 +828,24 @@ void SP_monster_cyborg(edict_t *self)
 	self->gib_health = -120;
 	self->mass = 300;
 
-	self->monsterinfo.power_armor_type = POWER_ARMOR_NONE;
-	self->monsterinfo.power_armor_power = 0;
-	self->monsterinfo.scale = MODEL_SCALE;
-
 	self->pain = cyborg_pain;
 	self->die = cyborg_die;
 
-	self->monsterinfo.sight = cyborg_sight;
-	self->monsterinfo.search = cyborg_search;
-	self->monsterinfo.idle = cyborg_idle;
 	self->monsterinfo.stand = cyborg_stand;
 	self->monsterinfo.walk = cyborg_walk;
 	self->monsterinfo.run = cyborg_run;
+	self->monsterinfo.dodge = NULL;
 	self->monsterinfo.attack = cyborg_attack;
 	self->monsterinfo.melee = cyborg_melee;
+	self->monsterinfo.sight = cyborg_sight;
+	self->monsterinfo.search = cyborg_search;
+	self->monsterinfo.idle = cyborg_idle;
 	self->monsterinfo.checkattack = cyborg_checkattack;
 
 	gi.linkentity(self);
 
 	self->monsterinfo.currentmove = &cyborg_move_stand;
+	self->monsterinfo.scale = MODEL_SCALE;
 
 	walkmonster_start(self);
 }

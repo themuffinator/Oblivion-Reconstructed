@@ -323,10 +323,14 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 			message = "found a way out";
 			break;
 		case MOD_TARGET_LASER:
-			message = "saw the light";
+			if (attacker == world)
+				message = "saw the light";
 			break;
 		case MOD_TARGET_BLASTER:
 			message = "got blasted";
+			break;
+		case MOD_TARGET_RAILGUN:
+			message = "got railed";
 			break;
 		case MOD_BOMB:
 		case MOD_SPLASH:
@@ -476,17 +480,21 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 				message = "stepped on";
 				message2 = "'s dog sh... er.. detonation pack";
 				break;
-			case MOD_LASERCANNON:
+			case MOD_OBLITERATOR:
 				message = "was sliced and diced by";
 				message2 = "'s obliterator";
 				break;
-                        case MOD_DONUT:
-                                message = "was vaporized by";
-                                message2 = "'s DoD launcher";
-                                break;
+			case MOD_DONUT:
+				message = "took a bite of";
+				message2 = "'s donut";
+				break;
 			case MOD_REMOTE_CANNON:
 				message = "caught some of";
 				message2 = "'s remote cannon lovin'";
+				break;
+			default:
+				message = "was killed by";
+				message2 = " somehow";
 				break;
                 }
 			if (message)
@@ -607,7 +615,6 @@ void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 {
 	int		n;
 
-	RTDU_PlayerDie (self);
 	VectorClear (self->avelocity);
 
 	self->takedamage = DAMAGE_YES;
@@ -726,17 +733,18 @@ void InitClientPersistant (gclient_t *client)
 	client->pers.health			= 100;
 	client->pers.max_health		= 100;
 
-	client->pers.max_bullets	= 200;
-	client->pers.max_shells		= 100;
-	client->pers.max_rockets	= 50;
-	client->pers.max_grenades	= 50;
-	client->pers.max_cells		= 200;
-	client->pers.max_slugs		= 50;
-        client->pers.max_mines         = 10;
-        client->pers.max_detpacks      = 10;
-        client->pers.max_dods          = 5;
-        client->pers.max_pistolplasma  = 100;
-        client->pers.max_rifleplasma   = 50;
+	client->pers.max_bullets			= 200;
+	client->pers.max_shells			= 100;
+	client->pers.max_rockets		= 50;
+	client->pers.max_grenades		= 50;
+	client->pers.max_mines			= 25;
+	client->pers.max_cells			= 200;
+	client->pers.max_slugs			= 50;
+	client->pers.max_pistolplasma		= 50;
+	client->pers.max_rifleplasma		= 50;
+	client->pers.max_detpacks		= 10;
+	client->pers.max_dods			= 2;
+	client->pers.plasma_rifle_regen_divisor	= 0;
 
 	client->pers.connected = true;
 }
@@ -1216,8 +1224,6 @@ void PutClientInServer (edict_t *ent)
 	int		i;
 	client_persistant_t	saved;
 	client_respawn_t	resp;
-	float		plasma_pistol_regen_at;
-	float		plasma_rifle_regen_at;
 
 	// find a spawn point
 	// do it before setting health back up, so farthest
@@ -1226,10 +1232,6 @@ void PutClientInServer (edict_t *ent)
 
 	index = ent-g_edicts-1;
 	client = ent->client;
-
-	// remember regeneration timers so they persist across respawn resets
-	plasma_pistol_regen_at = client->plasma_pistol_next_regen;
-	plasma_rifle_regen_at = client->plasma_rifle_next_regen;
 
 	// deathmatch wipes most client data every spawn
 	if (deathmatch->value)
@@ -1273,9 +1275,6 @@ void PutClientInServer (edict_t *ent)
 	if (client->pers.health <= 0)
 		InitClientPersistant(client);
 	client->resp = resp;
-
-	client->plasma_pistol_next_regen = plasma_pistol_regen_at;
-	client->plasma_rifle_next_regen = plasma_rifle_regen_at;
 
 	// copy some data from the client to the entity
 	FetchClientEntData (ent);
@@ -1350,10 +1349,11 @@ void PutClientInServer (edict_t *ent)
 	VectorCopy (ent->s.angles, client->ps.viewangles);
 	VectorCopy (ent->s.angles, client->v_angle);
 
+	client->remote_view_aux_entity = NULL;
+	client->remote_view_aux_flag = false;
+
 	// spawn a spectator
 	if (client->pers.spectator) {
-		client->chase_target = NULL;
-
 		client->resp.spectator = true;
 
 		ent->movetype = MOVETYPE_NOCLIP;
@@ -1629,8 +1629,6 @@ void ClientDisconnect (edict_t *ent)
 	if (!ent->client)
 		return;
 
-	RTDU_PlayerDisconnect (ent);
-
 	gi.bprintf (PRINT_HIGH, "%s disconnected\n", ent->client->pers.netname);
 
 	// send effect
@@ -1712,112 +1710,105 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	pm_passent = ent;
 
-	if (ent->client->chase_target) {
+	// set up for pmove
+	memset (&pm, 0, sizeof(pm));
 
-		client->resp.cmd_angles[0] = SHORT2ANGLE(ucmd->angles[0]);
-		client->resp.cmd_angles[1] = SHORT2ANGLE(ucmd->angles[1]);
-		client->resp.cmd_angles[2] = SHORT2ANGLE(ucmd->angles[2]);
+	if (client->remote_view_active)
+		client->ps.pmove.pm_type = PM_FREEZE;
+	else if (ent->movetype == MOVETYPE_NOCLIP)
+		client->ps.pmove.pm_type = PM_SPECTATOR;
+	else if (ent->s.modelindex != 255)
+		client->ps.pmove.pm_type = PM_GIB;
+	else if (ent->deadflag)
+		client->ps.pmove.pm_type = PM_DEAD;
+	else
+		client->ps.pmove.pm_type = PM_NORMAL;
 
-	} else {
+	client->ps.pmove.gravity = sv_gravity->value;
+	pm.s = client->ps.pmove;
 
-		// set up for pmove
-		memset (&pm, 0, sizeof(pm));
+	for (i=0 ; i<3 ; i++)
+	{
+		pm.s.origin[i] = ent->s.origin[i]*8;
+		pm.s.velocity[i] = ent->velocity[i]*8;
+	}
 
-		if (client->camera && client->camera_freeze && client->camera->camera_state && client->camera->camera_state->active)
-			client->ps.pmove.pm_type = PM_FREEZE;
-		else if (ent->movetype == MOVETYPE_NOCLIP)
-			client->ps.pmove.pm_type = PM_SPECTATOR;
-		else if (ent->s.modelindex != 255)
-			client->ps.pmove.pm_type = PM_GIB;
-		else if (ent->deadflag)
-			client->ps.pmove.pm_type = PM_DEAD;
-		else
-			client->ps.pmove.pm_type = PM_NORMAL;
+	if (memcmp(&client->old_pmove, &pm.s, sizeof(pm.s)))
+	{
+		pm.snapinitial = true;
+//		gi.dprintf ("pmove changed!\n");
+	}
 
-		client->ps.pmove.gravity = sv_gravity->value;
-		pm.s = client->ps.pmove;
+	if (client->remote_view_cmd_hook)
+		client->remote_view_cmd_hook(ent, ucmd);
 
-		for (i=0 ; i<3 ; i++)
-		{
-			pm.s.origin[i] = ent->s.origin[i]*8;
-			pm.s.velocity[i] = ent->velocity[i]*8;
-		}
+	pm.cmd = *ucmd;
 
-		if (memcmp(&client->old_pmove, &pm.s, sizeof(pm.s)))
-		{
-			pm.snapinitial = true;
-	//		gi.dprintf ("pmove changed!\n");
-		}
+	pm.trace = PM_trace;	// adds default parms
+	pm.pointcontents = gi.pointcontents;
 
-		pm.cmd = *ucmd;
+	// perform a pmove
+	gi.Pmove (&pm);
 
-		pm.trace = PM_trace;	// adds default parms
-		pm.pointcontents = gi.pointcontents;
+	// save results of pmove
+	client->ps.pmove = pm.s;
+	client->old_pmove = pm.s;
 
-		// perform a pmove
-		gi.Pmove (&pm);
+	for (i=0 ; i<3 ; i++)
+	{
+		ent->s.origin[i] = pm.s.origin[i]*0.125;
+		ent->velocity[i] = pm.s.velocity[i]*0.125;
+	}
 
-		// save results of pmove
-		client->ps.pmove = pm.s;
-		client->old_pmove = pm.s;
+	VectorCopy (pm.mins, ent->mins);
+	VectorCopy (pm.maxs, ent->maxs);
 
-		for (i=0 ; i<3 ; i++)
-		{
-			ent->s.origin[i] = pm.s.origin[i]*0.125;
-			ent->velocity[i] = pm.s.velocity[i]*0.125;
-		}
+	client->resp.cmd_angles[0] = SHORT2ANGLE(ucmd->angles[0]);
+	client->resp.cmd_angles[1] = SHORT2ANGLE(ucmd->angles[1]);
+	client->resp.cmd_angles[2] = SHORT2ANGLE(ucmd->angles[2]);
 
-		VectorCopy (pm.mins, ent->mins);
-		VectorCopy (pm.maxs, ent->maxs);
+	if (ent->groundentity && !pm.groundentity && (pm.cmd.upmove >= 10) && (pm.waterlevel == 0))
+	{
+		gi.sound(ent, CHAN_VOICE, gi.soundindex("*jump1.wav"), 1, ATTN_NORM, 0);
+		PlayerNoise(ent, ent->s.origin, PNOISE_SELF);
+	}
 
-		client->resp.cmd_angles[0] = SHORT2ANGLE(ucmd->angles[0]);
-		client->resp.cmd_angles[1] = SHORT2ANGLE(ucmd->angles[1]);
-		client->resp.cmd_angles[2] = SHORT2ANGLE(ucmd->angles[2]);
+	ent->viewheight = pm.viewheight;
+	ent->waterlevel = pm.waterlevel;
+	ent->watertype = pm.watertype;
+	ent->groundentity = pm.groundentity;
+	if (pm.groundentity)
+		ent->groundentity_linkcount = pm.groundentity->linkcount;
 
-		if (ent->groundentity && !pm.groundentity && (pm.cmd.upmove >= 10) && (pm.waterlevel == 0))
-		{
-			gi.sound(ent, CHAN_VOICE, gi.soundindex("*jump1.wav"), 1, ATTN_NORM, 0);
-			PlayerNoise(ent, ent->s.origin, PNOISE_SELF);
-		}
+	if (ent->deadflag)
+	{
+		client->ps.viewangles[ROLL] = 40;
+		client->ps.viewangles[PITCH] = -15;
+		client->ps.viewangles[YAW] = client->killer_yaw;
+	}
+	else
+	{
+		VectorCopy (pm.viewangles, client->v_angle);
+		VectorCopy (pm.viewangles, client->ps.viewangles);
+	}
 
-		ent->viewheight = pm.viewheight;
-		ent->waterlevel = pm.waterlevel;
-		ent->watertype = pm.watertype;
-		ent->groundentity = pm.groundentity;
-		if (pm.groundentity)
-			ent->groundentity_linkcount = pm.groundentity->linkcount;
+	gi.linkentity (ent);
 
-		if (ent->deadflag)
-		{
-			client->ps.viewangles[ROLL] = 40;
-			client->ps.viewangles[PITCH] = -15;
-			client->ps.viewangles[YAW] = client->killer_yaw;
-		}
-		else
-		{
-			VectorCopy (pm.viewangles, client->v_angle);
-			VectorCopy (pm.viewangles, client->ps.viewangles);
-		}
+	if (ent->movetype != MOVETYPE_NOCLIP)
+		G_TouchTriggers (ent);
 
-		gi.linkentity (ent);
-
-		if (ent->movetype != MOVETYPE_NOCLIP)
-			G_TouchTriggers (ent);
-
-		// touch other objects
-		for (i=0 ; i<pm.numtouch ; i++)
-		{
-			other = pm.touchents[i];
-			for (j=0 ; j<i ; j++)
-				if (pm.touchents[j] == other)
-					break;
-			if (j != i)
-				continue;	// duplicated
-			if (!other->touch)
-				continue;
-			other->touch (other, ent, NULL, NULL);
-		}
-
+	// touch other objects
+	for (i=0 ; i<pm.numtouch ; i++)
+	{
+		other = pm.touchents[i];
+		for (j=0 ; j<i ; j++)
+			if (pm.touchents[j] == other)
+				break;
+		if (j != i)
+			continue;	// duplicated
+		if (!other->touch)
+			continue;
+		other->touch (other, ent, NULL, NULL);
 	}
 
 	client->oldbuttons = client->buttons;
@@ -1831,41 +1822,13 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	// fire weapon from final position if needed
 	if (client->latched_buttons & BUTTON_ATTACK)
 	{
-		if (client->resp.spectator) {
-
-			client->latched_buttons = 0;
-
-			if (client->chase_target) {
-				client->chase_target = NULL;
-				client->ps.pmove.pm_flags &= ~PMF_NO_PREDICTION;
-			} else
-				GetChaseTarget(ent);
-
-		} else if (!client->weapon_thunk) {
+		if (!client->weapon_thunk) {
 			client->weapon_thunk = true;
 			Think_Weapon (ent);
 		}
 	}
 
-	if (client->resp.spectator) {
-		if (ucmd->upmove >= 10) {
-			if (!(client->ps.pmove.pm_flags & PMF_JUMP_HELD)) {
-				client->ps.pmove.pm_flags |= PMF_JUMP_HELD;
-				if (client->chase_target)
-					ChaseNext(ent);
-				else
-					GetChaseTarget(ent);
-			}
-		} else
-			client->ps.pmove.pm_flags &= ~PMF_JUMP_HELD;
-	}
-
-	// update chase cam if being followed
-	for (i = 1; i <= maxclients->value; i++) {
-		other = g_edicts + i;
-		if (other->inuse && other->client->chase_target == ent)
-			UpdateChaseCam(other);
-	}
+	Oblivion_UpdateWeaponRegen(ent);
 }
 
 

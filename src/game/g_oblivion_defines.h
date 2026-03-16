@@ -9,21 +9,24 @@
 #ifndef G_OBLIVION_DEFINES_H
 #define G_OBLIVION_DEFINES_H
 
-// Oblivion specific Means of Death
-// Starting from 40 to avoid conflict with standard Q2 (0-33) and common mods
-#define MOD_DISINTEGRATOR 40
-#define MOD_DEATOMIZER 41
-#define MOD_DEATOMIZER_SPLASH 42
-#define MOD_PLASMA_PISTOL 43
-#define MOD_PLASMA_RIFLE 44
-#define MOD_DONUT 45
-#define MOD_HELLFURY 46
-#define MOD_LASERCANNON 47
-#define MOD_DETPACK 48
-#define MOD_MINE 49
-#define MOD_MINE_SPLASH 50
-#define MOD_REMOTE_DETONATOR 51
-#define MOD_REMOTE_CANNON 52
+// Retail Oblivion-specific Means of Death recovered from the player obituary
+// tables. `MOD_MINE` aliases the same numeric slot as `MOD_TARGET_LASER` and
+// is disambiguated by attacker context.
+#define MOD_MINE 30
+#define MOD_TARGET_RAILGUN 34
+#define MOD_DEATOMIZER 35
+#define MOD_DISINTEGRATOR MOD_DEATOMIZER
+#define MOD_DEATOMIZER_SPLASH MOD_DEATOMIZER
+#define MOD_PLASMA_PISTOL 36
+#define MOD_PLASMA_RIFLE 37
+#define MOD_DETPACK 38
+#define MOD_REMOTE_DETONATOR MOD_DETPACK
+#define MOD_OBLITERATOR 39
+#define MOD_LASERCANNON MOD_OBLITERATOR
+#define MOD_HELLFURY MOD_OBLITERATOR
+#define MOD_DONUT 40
+#define MOD_REMOTE_CANNON 41
+#define MOD_MINE_SPLASH 42
 
 // Spawnflags (SVF_) or Entity Flags (FL_)
 // Using available bits where possible.

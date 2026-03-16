@@ -1,103 +1,117 @@
 {
-  "frame_sequences": {
+  "mmoves": {
     "cyborg_move_stand": {
-      "start": 108,
+      "start": 125,
       "end": 125
     },
     "cyborg_move_idle": {
-      "start": 82,
-      "end": 107
+      "start": 125,
+      "end": 125
     },
     "cyborg_move_walk": {
+      "start": 0,
+      "end": 17
+    },
+    "cyborg_move_run": {
       "start": 18,
       "end": 23
     },
-    "cyborg_move_run": {
-      "start": 79,
-      "end": 81
-    },
-    "cyborg_move_attack_primary": {
+    "cyborg_move_attack1": {
       "start": 24,
       "end": 35
     },
-    "cyborg_move_attack_secondary": {
+    "cyborg_move_attack_backflip": {
+      "start": 36,
+      "end": 46
+    },
+    "cyborg_move_attack2": {
       "start": 47,
       "end": 52
     },
-    "cyborg_move_attack_barrage": {
+    "cyborg_move_attack3": {
       "start": 53,
       "end": 58
     },
-    "death_move": {
-      "start": 15,
-      "end": 17
+    "cyborg_move_melee1": {
+      "start": 59,
+      "end": 66
     },
-    "cyborg_move_pain_stagger": {
+    "cyborg_move_melee2": {
+      "start": 67,
+      "end": 72
+    },
+    "cyborg_move_pain1": {
       "start": 73,
       "end": 78
     },
-    "cyborg_move_pain_recover": {
+    "cyborg_move_pain2": {
       "start": 79,
       "end": 81
+    },
+    "cyborg_move_pain2_end": {
+      "start": 82,
+      "end": 82
+    },
+    "cyborg_move_move": {
+      "start": 93,
+      "end": 104
+    },
+    "cyborg_move_death1": {
+      "start": 105,
+      "end": 112
+    },
+    "cyborg_move_death2": {
+      "start": 113,
+      "end": 118
+    },
+    "cyborg_move_death3": {
+      "start": 119,
+      "end": 124
     }
   },
-  "attack_thresholds": [
-    0.5,
-    0.7
-  ],
-  "expected_attack_sequence": [
-    "cyborg_move_attack_primary",
-    "cyborg_move_attack_barrage",
-    "cyborg_move_attack_secondary"
-  ],
-  "pain_cooldown": 3.0,
-  "stand_ground": {
-    "attack_finished_base": 0.9,
-    "attack_finished_random": 0.6
-  },
-  "audio_cues": {
-    "attack": null,
+  "audio": {
+    "attack": [
+      "cyborg/mutatck1.wav",
+      "cyborg/mutatck2.wav",
+      "cyborg/mutatck3.wav"
+    ],
+    "death": "cyborg/mutdeth1.wav",
+    "idle": "cyborg/mutidle1.wav",
     "pain": [
       "cyborg/mutpain1.wav",
       "cyborg/mutpain2.wav"
     ],
+    "sight": "cyborg/mutsght1.wav",
+    "search": "cyborg/mutsrch1.wav",
     "steps": [
       "cyborg/step1.wav",
       "cyborg/step2.wav",
       "cyborg/step3.wav"
     ],
-    "landing_thud": "cyborg/step3.wav"
+    "thud": "cyborg/thud1.wav"
   },
-  "simulation": {
-    "random_values": [
-      0.1,
-      0.5,
-      0.8
+  "spawn": {
+    "mins": [
+      -16.0,
+      -16.0,
+      -38.0
     ],
-    "pain_timestamps": [
-      10.0,
-      11.0,
-      12.5,
-      14.1
+    "maxs": [
+      16.0,
+      16.0,
+      27.0
+    ]
+  },
+  "corpse": {
+    "mins": [
+      -32.0,
+      -32.0,
+      -38.0
     ],
-    "expected_pain_events": 2,
-    "expected_audio_timeline": [
-      {
-        "event": "attack",
-        "sound": null
-      },
-      {
-        "event": "pain",
-        "sound": "cyborg/mutpain1.wav"
-      },
-      {
-        "event": "pain",
-        "sound": "cyborg/mutpain1.wav"
-      },
-      {
-        "event": "landing_thud",
-        "sound": "cyborg/step3.wav"
-      }
+    "maxs": [
+      32.0,
+      32.0,
+      -20.0
     ]
   }
 }

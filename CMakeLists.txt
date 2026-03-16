@@ -50,6 +50,13 @@ if(WIN32)
         ARCHIVE_OUTPUT_NAME "gamex86"
         SUFFIX ".dll"
     )
+
+    add_custom_command(TARGET oblivion_game POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "C:/q2Clean/oblivion-re"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:oblivion_game>"
+            "C:/q2Clean/oblivion-re/$<TARGET_FILE_NAME:oblivion_game>"
+    )
 else()
     set_target_properties(oblivion_game PROPERTIES
         PREFIX ""

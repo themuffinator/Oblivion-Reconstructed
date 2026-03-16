@@ -27,10 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct edict_s;
 typedef struct edict_s edict_t;
 
-typedef struct cplane_s cplane_t;
-typedef struct csurface_s csurface_t;
-typedef float vec3_t[3];
-
 // misc_actor spawnflags
 #define ACTOR_SPAWNFLAG_AMBUSH              0x00000001
 #define ACTOR_SPAWNFLAG_TRIGGER_SPAWN       0x00000002
@@ -46,31 +42,7 @@ typedef float vec3_t[3];
 #define TARGET_ACTOR_FLAG_HOLD              0x00000010
 #define TARGET_ACTOR_FLAG_BRUTAL            0x00000020
 
-typedef enum actor_path_state_e
-{
-        ACTOR_PATH_STATE_IDLE = 0,
-        ACTOR_PATH_STATE_SEEKING,
-        ACTOR_PATH_STATE_WAITING,
-        ACTOR_PATH_STATE_SCRIPT_WAIT,
-        ACTOR_PATH_STATE_LOCKED
-} actor_path_state_t;
-
-
-// Mission actor helpers
-void actor_stand (edict_t *self);
-void actor_walk (edict_t *self);
-void actor_run (edict_t *self);
-void actor_pain (edict_t *self, edict_t *other, float kick, int damage);
-void actor_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point);
-void actor_attack (edict_t *self);
-void actorMachineGun (edict_t *self);
-void actor_fire (edict_t *self);
-void actor_dead (edict_t *self);
-void actor_use (edict_t *self, edict_t *other, edict_t *activator);
-void target_actor_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf);
-
 void SP_misc_actor (edict_t *self);
-void Actor_PostLoad (edict_t *self);
 void SP_target_actor (edict_t *self);
 
 #endif /* M_ACTOR_H */

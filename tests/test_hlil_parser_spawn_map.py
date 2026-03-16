@@ -102,6 +102,7 @@ class HLILParserSpawnMapStrcmpTest(unittest.TestCase):
         spawn_map = parser.spawn_map
         self.assertIn("func_rotate_train", spawn_map)
         self.assertEqual(spawn_map["func_rotate_train"], "sub_10015750")
+        self.assertNotIn("func_train_rotating", spawn_map)
 
     def test_spawn_map_includes_binary_table_entries(self) -> None:
         parser = HLILParser(Path("references/HLIL/oblivion/gamex86.dll_hlil.txt"))

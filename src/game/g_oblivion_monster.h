@@ -4,7 +4,7 @@
 void fire_deatom(edict_t *self, vec3_t start, vec3_t dir, int damage,
                  int speed);
 void monster_fire_deatom(edict_t *self, vec3_t start, vec3_t dir, int damage,
-                         int speed, int flashtype);
+                         int speed);
 
 // Frames will be defined in respective monster files or here if shared.
 

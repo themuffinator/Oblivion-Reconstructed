@@ -417,64 +417,35 @@ void SP_target_spawner (edict_t *self)
 
 //==========================================================
 
+/*
+=============
+use_target_railgun
+=============
+*/
 static void use_target_railgun (edict_t *self, edict_t *other, edict_t *activator)
 {
-	vec3_t	start;
-	vec3_t	dir;
+	(void)other;
+	(void)activator;
 
-	if (self->wait > 0.0f && self->timestamp > level.time)
-		return;
-
-	VectorCopy (self->move_origin, start);
-
-	if (VectorCompare (start, vec3_origin))
-	{
-		if (!VectorCompare (self->moveinfo.start_origin, vec3_origin))
-			VectorCopy (self->moveinfo.start_origin, start);
-		else
-			VectorCopy (self->s.origin, start);
-	}
-
-	if (!VectorCompare (self->movedir, vec3_origin))
-	{
-		VectorCopy (self->movedir, dir);
-	}
-	else if (!VectorCompare (self->move_angles, vec3_origin))
-	{
-		AngleVectors (self->move_angles, dir, NULL, NULL);
-	}
-	else
-	{
-		AngleVectors (self->moveinfo.start_angles, dir, NULL, NULL);
-	}
-
-	if (VectorCompare (dir, vec3_origin))
-		return;
-
-	fire_rail (self, start, dir, self->dmg, self->count);
-
-	if (self->noise_index)
-		gi.sound (self, CHAN_WEAPON, self->noise_index, 1, ATTN_NORM, 0);
-
-	if (self->wait > 0.0f)
-		self->timestamp = level.time + self->wait;
+	fire_rail (self, self->s.origin, self->movedir, self->dmg, 0);
+	gi.sound (self, CHAN_VOICE, self->noise_index, 1, ATTN_NORM, 0);
 }
 
+/*
+=================
+SP_target_railgun
+=================
+*/
 void SP_target_railgun (edict_t *self)
 {
-	VectorCopy (self->s.origin, self->moveinfo.start_origin);
-	VectorCopy (self->s.angles, self->moveinfo.start_angles);
-	VectorCopy (self->moveinfo.start_origin, self->move_origin);
-	VectorCopy (self->moveinfo.start_angles, self->move_angles);
+	self->use = use_target_railgun;
 	G_SetMovedir (self->s.angles, self->movedir);
-
 	self->noise_index = gi.soundindex ("weapons/railgf1a.wav");
 
 	if (!self->dmg)
 		self->dmg = 150;
 
-	self->svflags |= SVF_NOCLIENT;
-	self->use = use_target_railgun;
+	self->svflags = SVF_NOCLIENT;
 }
 
 //==========================================================
@@ -519,66 +490,40 @@ void SP_target_blaster (edict_t *self)
 
 //==========================================================
 
-static void target_rocket_fire (edict_t *self)
+/*
+==================
+target_rocket_fire
+==================
+*/
+static void target_rocket_fire (edict_t *self, edict_t *other, edict_t *activator)
 {
-	vec3_t	start;
-	vec3_t	forward;
+	(void)other;
+	(void)activator;
 
-	VectorCopy (self->move_origin, start);
-	AngleVectors (self->move_angles, forward, NULL, NULL);
-
-	fire_rocket (self, start, forward, self->dmg, (int)self->speed,
-		self->dmg_radius, self->count);
+	fire_rocket (self, self->s.origin, self->movedir, self->dmg,
+		(int)self->speed, self->dmg_radius, self->count);
 	gi.sound (self, CHAN_VOICE, self->noise_index, 1, ATTN_NORM, 0);
-
-	self->think = NULL;
-	self->nextthink = 0;
 }
 
-static void target_rocket_use (edict_t *self, edict_t *other, edict_t *activator)
-{
-	float	delay;
-
-	self->activator = activator;
-
-	delay = self->wait;
-	if (delay < 0)
-		delay = 0;
-	if (self->random > 0)
-		delay += random() * self->random;
-
-	if (delay <= 0)
-		delay = FRAMETIME;
-
-	self->think = target_rocket_fire;
-	self->nextthink = level.time + delay;
-}
-
+/*
+================
+SP_target_rocket
+================
+*/
 void SP_target_rocket (edict_t *self)
 {
-	self->use = target_rocket_use;
+	self->use = target_rocket_fire;
 	G_SetMovedir (self->s.angles, self->movedir);
 	self->noise_index = gi.soundindex ("weapons/rocklf1a.wav");
 
-	if (!self->speed)
-		self->speed = 650;
 	if (!self->dmg)
 		self->dmg = 100 + (int)(random() * 20.0f);
 	if (!self->count)
 		self->count = 120;
 	if (!self->dmg_radius)
-	{
-		if (self->delay > 0)
-		{
-			self->dmg_radius = self->delay;
-			self->delay = 0;
-		}
-		else
-			self->dmg_radius = 120;
-	}
-
-	VectorCopy (self->s.origin, self->move_origin);
-	VectorCopy (self->s.angles, self->move_angles);
+		self->dmg_radius = 120;
+	if (!self->speed)
+		self->speed = 650;
 
 	self->svflags = SVF_NOCLIENT;
 }
@@ -734,6 +679,8 @@ void target_laser_start (edict_t *self)
 	// set the beam diameter
 	if (self->spawnflags & 64)
 		self->s.frame = 16;
+	else if (self->spawnflags & 128)
+		self->s.frame = 2;
 	else
 		self->s.frame = 4;
 

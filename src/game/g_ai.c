@@ -95,7 +95,7 @@ static qboolean Actor_FindEnemyTarget (edict_t *self)
 			continue;
 		if (ent->deadflag == DEAD_DYING || ent->deadflag == DEAD_DEAD)
 			continue;
-		if (ent->monsterinfo.aiflags & AI_STAND_GROUND)
+		if (ent->monsterinfo.aiflags & AI_GOOD_GUY)
 			continue;
 		if (!visible(self, ent))
 			continue;
@@ -197,7 +197,7 @@ static qboolean Actor_FindFollowTarget (edict_t *self)
 			ent = &g_edicts[i];
 			if (!ent->inuse)
 				continue;
-			if (!ent->client && !(ent->monsterinfo.aiflags & AI_STAND_GROUND))
+			if (!ent->client && !(ent->monsterinfo.aiflags & AI_GOOD_GUY))
 				continue;
 			if (!visible(self, ent))
 				continue;
@@ -283,6 +283,64 @@ void AI_SetSightClient (void)
 
 /*
 =============
+ai_stand_idle
+
+Retail idle-timer helper split out by the compiler from ai_stand.
+==============
+*/
+static qboolean ai_stand_idle (edict_t *self)
+{
+	if (!(self->spawnflags & 1) && self->monsterinfo.idle && (level.time > self->monsterinfo.idle_time))
+	{
+		if (self->monsterinfo.idle_time)
+		{
+			self->monsterinfo.idle (self);
+			self->monsterinfo.idle_time = level.time + 15 + random() * 15;
+			return true;
+		}
+
+		self->monsterinfo.idle_time = level.time + random() * 15;
+	}
+
+	return false;
+}
+
+
+/*
+=============
+ai_stand_tail
+
+Retail no-dist stand tail shared by ai_stand's AI_GOOD_GUY path.
+==============
+*/
+static void ai_stand_tail (edict_t *self)
+{
+	vec3_t	v;
+
+	if (self->enemy)
+	{
+		VectorSubtract (self->enemy->s.origin, self->s.origin, v);
+		self->ideal_yaw = vectoyaw(v);
+		M_ChangeYaw (self);
+		ai_checkattack (self, 0);
+		return;
+	}
+
+	if (!FindTarget (self) && !(self->monsterinfo.aiflags & (AI_STAND_GROUND | AI_TEMP_STAND_GROUND)))
+	{
+		if (self->monsterinfo.pausetime && (level.time > self->monsterinfo.pausetime))
+		{
+			self->monsterinfo.walk (self);
+			return;
+		}
+
+		ai_stand_idle(self);
+	}
+}
+
+
+/*
+=============
 ai_move
 
 Move the specified distance at current facing.
@@ -310,6 +368,12 @@ void ai_stand (edict_t *self, float dist)
 	if (dist)
 		M_walkmove (self, self->s.angles[YAW], dist);
 
+	if (self->monsterinfo.aiflags & AI_GOOD_GUY)
+	{
+		ai_stand_tail (self);
+		return;
+	}
+
 	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
 	{
 		if (self->enemy)
@@ -323,32 +387,22 @@ void ai_stand (edict_t *self, float dist)
 			}
 			M_ChangeYaw (self);
 			ai_checkattack (self, 0);
+			return;
 		}
-		else
-			FindTarget (self);
+
+		FindTarget (self);
 		return;
 	}
 
-	if (FindTarget (self))
-		return;
-	
-	if (level.time > self->monsterinfo.pausetime)
+	if (!FindTarget (self))
 	{
-		self->monsterinfo.walk (self);
-		return;
-	}
+		if (self->monsterinfo.pausetime && (level.time > self->monsterinfo.pausetime))
+		{
+			self->monsterinfo.walk (self);
+			return;
+		}
 
-	if (!(self->spawnflags & 1) && (self->monsterinfo.idle) && (level.time > self->monsterinfo.idle_time))
-	{
-		if (self->monsterinfo.idle_time)
-		{
-			self->monsterinfo.idle (self);
-			self->monsterinfo.idle_time = level.time + 15 + random() * 15;
-		}
-		else
-		{
-			self->monsterinfo.idle_time = level.time + random() * 15;
-		}
+		ai_stand_idle(self);
 	}
 }
 
@@ -362,24 +416,32 @@ The monster is walking it's beat
 */
 void ai_walk (edict_t *self, float dist)
 {
-        M_MoveToGoal (self, dist);
+	M_MoveToGoal (self, dist);
 
-        // check for noticing a player
-        if (FindTarget (self))
-                return;
+	if (!(self->monsterinfo.aiflags & AI_GOOD_GUY))
+	{
+		// check for noticing a player
+		if (FindTarget (self))
+			return;
 
-        if ((self->monsterinfo.search) && (level.time > self->monsterinfo.idle_time))
-        {
-                if (self->monsterinfo.idle_time)
-                {
-                        self->monsterinfo.search (self);
-                        self->monsterinfo.idle_time = level.time + 15 + random() * 15;
-                }
-                else
-                {
-                        self->monsterinfo.idle_time = level.time + random() * 15;
-                }
-        }
+		if ((self->monsterinfo.search) && (level.time > self->monsterinfo.idle_time))
+		{
+			if (self->monsterinfo.idle_time)
+			{
+				self->monsterinfo.search (self);
+				self->monsterinfo.idle_time = level.time + 15 + random() * 15;
+			}
+			else
+			{
+				self->monsterinfo.idle_time = level.time + random() * 15;
+			}
+		}
+	}
+	else if (self->monsterinfo.aiflags & AI_ACTOR_PATH_IDLE)
+	{
+		FindTarget (self);
+		return;
+	}
 }
 
 void ai_fly (edict_t *self, float dist)
@@ -566,7 +628,7 @@ void FoundTarget (edict_t *self)
 
 	if (!self->combattarget)
 	{
-		HuntTarget (self);
+		Actor_EngageEnemy(self);
 		return;
 	}
 
@@ -574,8 +636,7 @@ void FoundTarget (edict_t *self)
 	if (!self->movetarget)
 	{
 		self->goalentity = self->movetarget = self->enemy;
-		HuntTarget (self);
-		gi.dprintf("%s at %s, combattarget %s not found\n", self->classname, vtos(self->s.origin), self->combattarget);
+		Actor_EngageEnemy(self);
 		return;
 	}
 
@@ -615,19 +676,19 @@ qboolean FindTarget (edict_t *self)
 	qboolean	heardit;
 	int			r;
 
-	if (self->monsterinfo.aiflags & AI_ACTOR_PATH_IDLE)
-	{
-		if (self->monsterinfo.aiflags & AI_ACTOR_FRIENDLY)
-		{
-			if (Actor_FindEnemyTarget(self))
-				return true;
-		}
-
-		return Actor_FindFollowTarget(self);
-	}
-
 	if (self->monsterinfo.aiflags & AI_GOOD_GUY)
 	{
+		if (self->monsterinfo.aiflags & AI_ACTOR_PATH_IDLE)
+		{
+			if (self->monsterinfo.aiflags & AI_ACTOR_FRIENDLY)
+			{
+				if (Actor_FindEnemyTarget(self))
+					return true;
+			}
+
+			return Actor_FindFollowTarget(self);
+		}
+
 		if (self->goalentity && self->goalentity->inuse && self->goalentity->classname)
 		{
 			if (strcmp(self->goalentity->classname, "target_actor") == 0)

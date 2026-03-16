@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_local.h"
 
 qboolean Pickup_Weapon(edict_t *ent, edict_t *other);
+qboolean Pickup_RiflePlasma(edict_t *ent, edict_t *other);
 void Use_Weapon(edict_t *ent, gitem_t *inv);
 void Drop_Weapon(edict_t *ent, gitem_t *inv);
 
@@ -40,9 +41,9 @@ void Weapon_Railgun(edict_t *ent);
 void Weapon_BFG(edict_t *ent);
 void Weapon_PlasmaPistol(edict_t *ent);
 void Weapon_PlasmaRifle(edict_t *ent);
-void Weapon_Hellfury(edict_t *ent);
-void Weapon_LaserCannon(edict_t *ent);
+void Weapon_Obliterator(edict_t *ent);
 void Weapon_Deatomizer(edict_t *ent);
+void Weapon_DetonationPack(edict_t *ent);
 void Weapon_RemoteDetonator(edict_t *ent);
 void Weapon_DOD(edict_t *ent);
 void Weapon_ProximityMines(edict_t *ent);
@@ -228,16 +229,6 @@ qboolean Pickup_Bandolier(edict_t *ent, edict_t *other) {
     other->client->pers.max_cells = 250;
   if (other->client->pers.max_slugs < 75)
     other->client->pers.max_slugs = 75;
-  if (other->client->pers.max_mines < 15)
-    other->client->pers.max_mines = 15;
-  if (other->client->pers.max_detpacks < 15)
-    other->client->pers.max_detpacks = 15;
-  if (other->client->pers.max_dods < 6)
-    other->client->pers.max_dods = 6;
-  if (other->client->pers.max_pistolplasma < 150)
-    other->client->pers.max_pistolplasma = 150;
-  if (other->client->pers.max_rifleplasma < 75)
-    other->client->pers.max_rifleplasma = 75;
 
   item = FindItem("Bullets");
   if (item) {
@@ -253,50 +244,6 @@ qboolean Pickup_Bandolier(edict_t *ent, edict_t *other) {
     other->client->pers.inventory[index] += item->quantity;
     if (other->client->pers.inventory[index] > other->client->pers.max_shells)
       other->client->pers.inventory[index] = other->client->pers.max_shells;
-  }
-
-  item = FindItem("PistolPlasma");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] >
-        other->client->pers.max_pistolplasma)
-      other->client->pers.inventory[index] =
-          other->client->pers.max_pistolplasma;
-  }
-
-  item = FindItem("Rifle Plasma");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] >
-        other->client->pers.max_rifleplasma)
-      other->client->pers.inventory[index] =
-          other->client->pers.max_rifleplasma;
-  }
-
-  item = FindItem("Mines");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] > other->client->pers.max_mines)
-      other->client->pers.inventory[index] = other->client->pers.max_mines;
-  }
-
-  item = FindItem("Detonation Pack");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] > other->client->pers.max_detpacks)
-      other->client->pers.inventory[index] = other->client->pers.max_detpacks;
-  }
-
-  item = FindItem("DOD");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] > other->client->pers.max_dods)
-      other->client->pers.inventory[index] = other->client->pers.max_dods;
   }
 
   if (!(ent->spawnflags & DROPPED_ITEM) && (deathmatch->value))
@@ -317,20 +264,16 @@ qboolean Pickup_Pack(edict_t *ent, edict_t *other) {
     other->client->pers.max_rockets = 100;
   if (other->client->pers.max_grenades < 100)
     other->client->pers.max_grenades = 100;
+  if (other->client->pers.max_mines < 10)
+    other->client->pers.max_mines = 10;
   if (other->client->pers.max_cells < 300)
     other->client->pers.max_cells = 300;
   if (other->client->pers.max_slugs < 100)
     other->client->pers.max_slugs = 100;
-  if (other->client->pers.max_mines < 20)
-    other->client->pers.max_mines = 20;
-  if (other->client->pers.max_detpacks < 20)
-    other->client->pers.max_detpacks = 20;
-  if (other->client->pers.max_dods < 10)
-    other->client->pers.max_dods = 10;
-  if (other->client->pers.max_pistolplasma < 200)
-    other->client->pers.max_pistolplasma = 200;
-  if (other->client->pers.max_rifleplasma < 100)
-    other->client->pers.max_rifleplasma = 100;
+  if (other->client->pers.max_detpacks < 5)
+    other->client->pers.max_detpacks = 5;
+  if (other->client->pers.max_dods < 2)
+    other->client->pers.max_dods = 2;
 
   item = FindItem("Bullets");
   if (item) {
@@ -378,50 +321,6 @@ qboolean Pickup_Pack(edict_t *ent, edict_t *other) {
     other->client->pers.inventory[index] += item->quantity;
     if (other->client->pers.inventory[index] > other->client->pers.max_slugs)
       other->client->pers.inventory[index] = other->client->pers.max_slugs;
-  }
-
-  item = FindItem("PistolPlasma");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] >
-        other->client->pers.max_pistolplasma)
-      other->client->pers.inventory[index] =
-          other->client->pers.max_pistolplasma;
-  }
-
-  item = FindItem("Rifle Plasma");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] >
-        other->client->pers.max_rifleplasma)
-      other->client->pers.inventory[index] =
-          other->client->pers.max_rifleplasma;
-  }
-
-  item = FindItem("Mines");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] > other->client->pers.max_mines)
-      other->client->pers.inventory[index] = other->client->pers.max_mines;
-  }
-
-  item = FindItem("Detonation Pack");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] > other->client->pers.max_detpacks)
-      other->client->pers.inventory[index] = other->client->pers.max_detpacks;
-  }
-
-  item = FindItem("DOD");
-  if (item) {
-    index = ITEM_INDEX(item);
-    other->client->pers.inventory[index] += item->quantity;
-    if (other->client->pers.inventory[index] > other->client->pers.max_dods)
-      other->client->pers.inventory[index] = other->client->pers.max_dods;
   }
 
   if (!(ent->spawnflags & DROPPED_ITEM) && (deathmatch->value))
@@ -1116,13 +1015,6 @@ be on an entity that hasn't spawned yet.
 void SpawnItem(edict_t *ent, gitem_t *item) {
   PrecacheItem(item);
 
-#if !OBLIVION_ENABLE_WEAPON_LASERCANNON
-  if (ent->classname && !strcmp(ent->classname, "weapon_lasercannon")) {
-    G_FreeEdict(ent);
-    return;
-  }
-#endif
-
   if (ent->spawnflags) {
     if (strcmp(ent->classname, "key_power_cube") != 0) {
       ent->spawnflags = 0;
@@ -1329,7 +1221,7 @@ gitem_t itemlist[] = {
 
     /*QUAKED ammo_detpack (.3 .3 1) (-16 -16 -16) (16 16 16)
      */
-    {"ammo_detpack", Pickup_Ammo, Use_Weapon, Drop_Ammo, Weapon_RemoteDetonator,
+    {"ammo_detpack", Pickup_Ammo, Use_Weapon, Drop_Ammo, Weapon_DetonationPack,
      "misc/am_pkup.wav", "models/items/ammo/detpack/tris.md2", 0,
      "models/weapons/v_detpack/tris.md2",
      /* icon */ "a_detpack",
@@ -1381,7 +1273,8 @@ gitem_t itemlist[] = {
 
     /*QUAKED weapon_hellfury (.3 .3 1) (-16 -16 -16) (16 16 16)
      */
-    {"weapon_hellfury", Pickup_Weapon, Use_Weapon, Drop_Weapon, Weapon_Hellfury,
+    {"weapon_hellfury", Pickup_Weapon, Use_Weapon, Drop_Weapon,
+     Weapon_Obliterator,
      "misc/w_pkup.wav", "models/weapons/g_hellfury/tris.md2", EF_ROTATE,
      "models/weapons/v_hellfury/tris.md2",
      /* icon */ "w_hellfury",
@@ -1440,15 +1333,22 @@ gitem_t itemlist[] = {
 
     /*QUAKED weapon_dod (.3 .3 1) (-16 -16 -16) (16 16 16)
      */
-    {"weapon_dod", Pickup_Weapon, Use_Weapon, Drop_Weapon, Weapon_DOD,
-     "misc/w_pkup.wav", "models/weapons/g_dod/tris.md2", EF_ROTATE,
-     "models/weapons/v_DoD/tris.md2",
+    {"weapon_dod", Pickup_Ammo, Use_Weapon, Drop_Ammo, Weapon_DOD,
+     "misc/am_pkup.wav", "models/weapons/g_dod/tris.md2", EF_ROTATE,
+     "models/weapons/v_dod/tris.md2",
      /* icon */ "a_dod",
-     /* pickup */ "DoD Launcher", 0, 1, "DOD", IT_WEAPON | IT_STAY_COOP,
-     WEAP_DONUT, NULL, 0,
-     /* precache */
-     "models/weapons/v_DoD/tris.md2 models/objects/dod/tris.md2 "
-     "sound/dod/DoD_hum.wav sound/dod/DoD.wav"},
+     /* pickup */ "DOD", 2, 1, "DOD", IT_AMMO | IT_WEAPON,
+     WEAP_DONUT, NULL, AMMO_DOD,
+     /* precache */ "sound/dod/hum.wave sound/dod/dod.wav"},
+
+    /*QUAKED weapon_rtdu (.3 .3 1) (-16 -16 -16) (16 16 16)
+     */
+    {"weapon_rtdu", Pickup_RTDU, rtdu_use, Drop_RTDU, NULL,
+     "misc/w_pkup.wav", "models/objects/rtdu/rtdu.md2", 0, NULL,
+     /* icon */ "w_rtdu",
+     /* pickup */ "RTDU", 1, 1, NULL, IT_POWERUP | IT_STAY_COOP,
+     0, NULL, 0,
+     /* precache */ ""},
 
     /*QUAKED weapon_plasma_rifle (.3 .3 1) (-16 -16 -16) (16 16 16)
      */
@@ -1461,55 +1361,14 @@ gitem_t itemlist[] = {
      /* precache */
      "plasma2/fire.wav plasma2/hit.wav"},
 
-/*QUAKED weapon_lasercannon (.3 .3 1) (-16 -16 -16) (16 16 16)
- */
-#if 0
-        {
-                "weapon_lasercannon",
-                Pickup_Weapon,
-                Use_Weapon,
-                Drop_Weapon,
-                Weapon_LaserCannon,
-                "misc/w_pkup.wav",
-                "models/weapons/g_laser/tris.md2", EF_ROTATE,
-                "models/weapons/v_laser/tris.md2",
-/* icon */              "w_bfg",
-/* pickup */    "Obliterator",
-                0,
-                3,
-                "Cells",
-                IT_WEAPON|IT_STAY_COOP,
-                WEAP_LASERCANNON,
-                NULL,
-                0,
-/* precache */ "models/objects/laser/tris.md2 weapons/hyprbu1a.wav weapons/hyprbl1a.wav weapons/hyprbf1a.wav weapons/hyprbd1a.wav misc/lasfly.wav"
-        },
-#endif
-
 /*QUAKED weapon_remote_detonator (.3 .3 1) (-16 -16 -16) (16 16 16)
  */
-#if 0
-        {
-                "weapon_remote_detonator",
-                Pickup_Weapon,
-                Use_Weapon,
-                Drop_Weapon,
-                Weapon_RemoteDetonator,
-                "misc/w_pkup.wav",
-                NULL, 0,
-                "models/weapons/v_detonator/tris.md2",
-/* icon */              "w_detpack",
-/* pickup */    "Remote Detonator",
-                0,
-                0,
-                "Detonation Pack",
-                IT_WEAPON|IT_STAY_COOP,
-                WEAP_REMOTE_DETONATOR,
-                NULL,
-                0,
-/* precache */ ""
-        },
-#endif
+    {"weapon_remote_detonator", NULL, Use_Weapon, NULL, Weapon_RemoteDetonator,
+     "misc/w_pkup.wav", NULL, 0, "models/weapons/v_detonator/tris.md2",
+     /* icon */ "w_detpack",
+     /* pickup */ "Remote Detonator", 0, 0, NULL, IT_WEAPON | IT_STAY_COOP, 0,
+     NULL, 0,
+     /* precache */ ""},
 
     //
     // AMMO ITEMS
@@ -1562,11 +1421,12 @@ gitem_t itemlist[] = {
 
     /*QUAKED ammo_dod (.3 .3 1) (-16 -16 -16) (16 16 16)
      */
-    {"ammo_dod", Pickup_Ammo, Use_Weapon, Drop_Ammo, NULL, "misc/am_pkup.wav",
-     "models/items/dod/tris.md2", EF_ROTATE, "models/weapons/v_dod/tris.md2",
+    {"ammo_dod", Pickup_Ammo, Use_Weapon, Drop_Ammo, Weapon_DOD,
+     "misc/am_pkup.wav", "models/weapons/g_dod/tris.md2", EF_ROTATE,
+     "models/weapons/v_dod/tris.md2",
      /* icon */ "a_dod",
      /* pickup */ "DOD",
-     /* width */ 2, 1, "DOD", IT_AMMO, 0, NULL, AMMO_DOD,
+     /* width */ 2, 1, "DOD", IT_AMMO | IT_WEAPON, WEAP_DONUT, NULL, AMMO_DOD,
      /* precache */ "sound/dod/hum.wave sound/dod/dod.wav"},
     /*QUAKED ammo_pistolplasma (.3 .3 1) (-16 -16 -16) (16 16 16)
      */
@@ -1579,11 +1439,11 @@ gitem_t itemlist[] = {
 
     /*QUAKED ammo_rifleplasma (.3 .3 1) (-16 -16 -16) (16 16 16)
      */
-    {"ammo_rifleplasma", Pickup_Ammo, NULL, Drop_Ammo, NULL, "misc/am_pkup.wav",
+    {"ammo_rifleplasma", Pickup_RiflePlasma, NULL, NULL, NULL, "misc/am_pkup.wav",
      "models/items/plasmapack/tris.md2", EF_ROTATE, NULL,
      /* icon */ "a_plasma2",
      /* pickup */ "Rifle Plasma",
-     /* width */ 3, 100, NULL, IT_AMMO | IT_POWERUP, 0, NULL, AMMO_RIFLEPLASMA,
+     /* width */ 3, 50, NULL, IT_AMMO | IT_POWERUP, 0, NULL, AMMO_RIFLEPLASMA,
      /* precache */ ""},
 
     /*QUAKED item_ancient_head (.3 .3 1) (-16 -16 -16) (16 16 16)

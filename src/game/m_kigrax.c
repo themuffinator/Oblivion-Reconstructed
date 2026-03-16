@@ -1,13 +1,9 @@
 /*
  * Kigrax hovering plasma sentry.
- * Reconstructed from Oblivion retail assembly.
+ * Reconstructed from retail Oblivion Ghidra mapping and decompilation.
  */
 
 #include "g_local.h"
-
-#ifndef ARRAY_LEN
-#define ARRAY_LEN(x) (sizeof(x) / sizeof((x)[0]))
-#endif
 
 enum
 {
@@ -35,39 +31,20 @@ enum
 	KIGRAX_FRAME_ATTACK_LAST = 204
 };
 
-#define KIGRAX_FRAME_DEATH_THINK 163
-#define KIGRAX_FRAME_MELEE1_FIRE1 176
-#define KIGRAX_FRAME_MELEE1_FIRE2 180
-#define KIGRAX_FRAME_MELEE2_FIRE 188
-#define KIGRAX_FRAME_ATTACK_FIRE 198
+#define KIGRAX_STAND_SELECT_CHANCE	0.333333f
+#define KIGRAX_SEARCH_SOUND_CHANCE	0.5f
+#define KIGRAX_MELEE_SKIP_CHANCE	0.1f
+#define KIGRAX_MELEE_PRIMARY_CHANCE	0.9f
+#define KIGRAX_PAIN_COOLDOWN	3.0f
 
-#define KIGRAX_FRAME_COUNT(start, end) ((end) - (start) + 1)
-
-#define KIGRAX_STAND_CHANCE 0.333333f
-#define KIGRAX_SEARCH_CHANCE 0.5f
-#define KIGRAX_MELEE_SKIP_CHANCE 0.1f
-#define KIGRAX_MELEE_ALT_CHANCE 0.9f
-#define KIGRAX_PAIN_DELAY 3.0f
-
-#define KIGRAX_MELEE_KICK 100
-#define KIGRAX_PLASMA_DAMAGE 10
-#define KIGRAX_PLASMA_SPEED 1000
-#define KIGRAX_PLASMA_FLASH 1
-#define KIGRAX_PLASMA_TYPE 1
+#define KIGRAX_YAW_SPEED	20
+#define KIGRAX_MELEE_KICK	100
+#define KIGRAX_PLASMA_DAMAGE	10
+#define KIGRAX_PLASMA_SPEED	1000
+#define KIGRAX_PLASMA_FLASH	1
+#define KIGRAX_PLASMA_TYPE	1
 
 static vec3_t kigrax_plasma_offset = {16.0f, 0.0f, -16.0f};
-
-static mframe_t kigrax_frames_stand[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_STAND_FIRST, KIGRAX_FRAME_STAND_LAST)];
-static mframe_t kigrax_frames_scan[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_SCAN_FIRST, KIGRAX_FRAME_SCAN_LAST)];
-static mframe_t kigrax_frames_walk1[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_WALK1_FIRST, KIGRAX_FRAME_WALK1_LAST)];
-static mframe_t kigrax_frames_walk2[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_WALK2_FIRST, KIGRAX_FRAME_WALK2_LAST)];
-static mframe_t kigrax_frames_sight[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_SIGHT_FIRST, KIGRAX_FRAME_SIGHT_LAST)];
-static mframe_t kigrax_frames_run[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_RUN_FIRST, KIGRAX_FRAME_RUN_LAST)];
-static mframe_t kigrax_frames_pain[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_PAIN_FIRST, KIGRAX_FRAME_PAIN_LAST)];
-static mframe_t kigrax_frames_death[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_DEATH_FIRST, KIGRAX_FRAME_DEATH_LAST)];
-static mframe_t kigrax_frames_melee1[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_MELEE1_FIRST, KIGRAX_FRAME_MELEE1_LAST)];
-static mframe_t kigrax_frames_melee2[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_MELEE2_FIRST, KIGRAX_FRAME_MELEE2_LAST)];
-static mframe_t kigrax_frames_attack[KIGRAX_FRAME_COUNT(KIGRAX_FRAME_ATTACK_FIRST, KIGRAX_FRAME_ATTACK_LAST)];
 
 static void kigrax_stand(edict_t *self);
 static void kigrax_walk(edict_t *self);
@@ -77,88 +54,260 @@ static void kigrax_melee(edict_t *self);
 static void kigrax_search(edict_t *self);
 static void kigrax_sight(edict_t *self, edict_t *other);
 static void kigrax_pain(edict_t *self, edict_t *other, float kick, int damage);
-static void kigrax_die(edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point);
+static void kigrax_die(edict_t *self, edict_t *inflictor, edict_t *attacker,
+	int damage, vec3_t point);
 static void kigrax_dead(edict_t *self);
 static void kigrax_strike1(edict_t *self);
 static void kigrax_strike2(edict_t *self);
 static void kigrax_fire_plasma(edict_t *self);
 
-static mmove_t kigrax_move_stand = {
-	KIGRAX_FRAME_STAND_FIRST,
-	KIGRAX_FRAME_STAND_LAST,
-	kigrax_frames_stand,
-	NULL
+static mframe_t kigrax_frames_stand[] = {
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL}
 };
+static mmove_t kigrax_move_stand = {KIGRAX_FRAME_STAND_FIRST,
+	KIGRAX_FRAME_STAND_LAST, kigrax_frames_stand, NULL};
 
-static mmove_t kigrax_move_scan = {
-	KIGRAX_FRAME_SCAN_FIRST,
-	KIGRAX_FRAME_SCAN_LAST,
-	kigrax_frames_scan,
-	NULL
+static mframe_t kigrax_frames_scan[] = {
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL},
+	{ai_stand, 0.0f, NULL}
 };
+static mmove_t kigrax_move_scan = {KIGRAX_FRAME_SCAN_FIRST,
+	KIGRAX_FRAME_SCAN_LAST, kigrax_frames_scan, NULL};
 
-static mmove_t kigrax_move_walk1 = {
-	KIGRAX_FRAME_WALK1_FIRST,
-	KIGRAX_FRAME_WALK1_LAST,
-	kigrax_frames_walk1,
-	NULL
+static mframe_t kigrax_frames_walk1[] = {
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL}
 };
+static mmove_t kigrax_move_walk1 = {KIGRAX_FRAME_WALK1_FIRST,
+	KIGRAX_FRAME_WALK1_LAST, kigrax_frames_walk1, NULL};
 
-static mmove_t kigrax_move_walk2 = {
-	KIGRAX_FRAME_WALK2_FIRST,
-	KIGRAX_FRAME_WALK2_LAST,
-	kigrax_frames_walk2,
-	NULL
+static mframe_t kigrax_frames_walk2[] = {
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL},
+	{ai_walk, 4.0f, NULL}
 };
+static mmove_t kigrax_move_walk2 = {KIGRAX_FRAME_WALK2_FIRST,
+	KIGRAX_FRAME_WALK2_LAST, kigrax_frames_walk2, NULL};
 
-static mmove_t kigrax_move_sight = {
-	KIGRAX_FRAME_SIGHT_FIRST,
-	KIGRAX_FRAME_SIGHT_LAST,
-	kigrax_frames_sight,
-	NULL
+static mframe_t kigrax_frames_sight[] = {
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL},
+	{ai_run, 10.0f, NULL}
 };
+static mmove_t kigrax_move_sight = {KIGRAX_FRAME_SIGHT_FIRST,
+	KIGRAX_FRAME_SIGHT_LAST, kigrax_frames_sight, NULL};
 
-static mmove_t kigrax_move_run = {
-	KIGRAX_FRAME_RUN_FIRST,
-	KIGRAX_FRAME_RUN_LAST,
-	kigrax_frames_run,
-	NULL
+static mframe_t kigrax_frames_run[] = {
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL},
+	{ai_run, 15.0f, NULL}
 };
+static mmove_t kigrax_move_run = {KIGRAX_FRAME_RUN_FIRST,
+	KIGRAX_FRAME_RUN_LAST, kigrax_frames_run, NULL};
 
-static mmove_t kigrax_move_pain = {
-	KIGRAX_FRAME_PAIN_FIRST,
-	KIGRAX_FRAME_PAIN_LAST,
-	kigrax_frames_pain,
-	kigrax_run
+static mframe_t kigrax_frames_pain[] = {
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL}
 };
+static mmove_t kigrax_move_pain = {KIGRAX_FRAME_PAIN_FIRST,
+	KIGRAX_FRAME_PAIN_LAST, kigrax_frames_pain, kigrax_run};
 
-static mmove_t kigrax_move_death = {
-	KIGRAX_FRAME_DEATH_FIRST,
-	KIGRAX_FRAME_DEATH_LAST,
-	kigrax_frames_death,
-	kigrax_dead
+static mframe_t kigrax_frames_death[] = {
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, kigrax_dead},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL},
+	{ai_move, 0.0f, NULL}
 };
+static mmove_t kigrax_move_death = {KIGRAX_FRAME_DEATH_FIRST,
+	KIGRAX_FRAME_DEATH_LAST, kigrax_frames_death, kigrax_dead};
 
-static mmove_t kigrax_move_melee1 = {
-	KIGRAX_FRAME_MELEE1_FIRST,
-	KIGRAX_FRAME_MELEE1_LAST,
-	kigrax_frames_melee1,
-	kigrax_melee
+static mframe_t kigrax_frames_melee1[] = {
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, kigrax_strike1},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, kigrax_strike1},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL}
 };
+static mmove_t kigrax_move_melee1 = {KIGRAX_FRAME_MELEE1_FIRST,
+	KIGRAX_FRAME_MELEE1_LAST, kigrax_frames_melee1, kigrax_melee};
 
-static mmove_t kigrax_move_melee2 = {
-	KIGRAX_FRAME_MELEE2_FIRST,
-	KIGRAX_FRAME_MELEE2_LAST,
-	kigrax_frames_melee2,
-	kigrax_melee
+static mframe_t kigrax_frames_melee2[] = {
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, kigrax_strike2},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL},
+	{ai_charge, 1.0f, NULL}
 };
+static mmove_t kigrax_move_melee2 = {KIGRAX_FRAME_MELEE2_FIRST,
+	KIGRAX_FRAME_MELEE2_LAST, kigrax_frames_melee2, kigrax_melee};
 
-static mmove_t kigrax_move_attack = {
-	KIGRAX_FRAME_ATTACK_FIRST,
-	KIGRAX_FRAME_ATTACK_LAST,
-	kigrax_frames_attack,
-	kigrax_run
+static mframe_t kigrax_frames_attack[] = {
+	{ai_charge, 0.0f, NULL},
+	{ai_charge, 0.0f, NULL},
+	{ai_charge, 0.0f, NULL},
+	{ai_charge, 0.0f, kigrax_fire_plasma},
+	{ai_charge, 0.0f, NULL},
+	{ai_charge, 0.0f, NULL},
+	{ai_charge, 0.0f, NULL},
+	{ai_charge, 0.0f, NULL},
+	{ai_charge, 0.0f, NULL},
+	{ai_charge, 0.0f, NULL}
 };
+static mmove_t kigrax_move_attack = {KIGRAX_FRAME_ATTACK_FIRST,
+	KIGRAX_FRAME_ATTACK_LAST, kigrax_frames_attack, kigrax_run};
 
 static int sound_pain;
 static int sound_death;
@@ -170,54 +319,6 @@ static int sound_idle;
 
 /*
 =============
-kigrax_seed_frames
-
-Initialize a contiguous mframe array with shared AI and distance.
-=============
-*/
-static void kigrax_seed_frames(mframe_t *frames, size_t count,
-		void (*aifunc)(edict_t *self, float dist), float dist)
-{
-	size_t	index;
-
-	for (index = 0; index < count; index++)
-	{
-		frames[index].aifunc = aifunc;
-		frames[index].dist = dist;
-		frames[index].thinkfunc = NULL;
-	}
-}
-
-/*
-=============
-kigrax_init_moves
-
-Seed the Kigrax frame tables and wire the per-frame callbacks.
-=============
-*/
-static void kigrax_init_moves(void)
-{
-	kigrax_seed_frames(kigrax_frames_stand, ARRAY_LEN(kigrax_frames_stand), ai_stand, 0.0f);
-	kigrax_seed_frames(kigrax_frames_scan, ARRAY_LEN(kigrax_frames_scan), ai_stand, 0.0f);
-	kigrax_seed_frames(kigrax_frames_walk1, ARRAY_LEN(kigrax_frames_walk1), ai_walk, 4.0f);
-	kigrax_seed_frames(kigrax_frames_walk2, ARRAY_LEN(kigrax_frames_walk2), ai_walk, 4.0f);
-	kigrax_seed_frames(kigrax_frames_sight, ARRAY_LEN(kigrax_frames_sight), ai_run, 10.0f);
-	kigrax_seed_frames(kigrax_frames_run, ARRAY_LEN(kigrax_frames_run), ai_run, 15.0f);
-	kigrax_seed_frames(kigrax_frames_pain, ARRAY_LEN(kigrax_frames_pain), ai_move, 0.0f);
-	kigrax_seed_frames(kigrax_frames_death, ARRAY_LEN(kigrax_frames_death), ai_move, 0.0f);
-	kigrax_seed_frames(kigrax_frames_melee1, ARRAY_LEN(kigrax_frames_melee1), ai_charge, 1.0f);
-	kigrax_seed_frames(kigrax_frames_melee2, ARRAY_LEN(kigrax_frames_melee2), ai_charge, 1.0f);
-	kigrax_seed_frames(kigrax_frames_attack, ARRAY_LEN(kigrax_frames_attack), ai_charge, 0.0f);
-
-	kigrax_frames_death[KIGRAX_FRAME_DEATH_THINK - KIGRAX_FRAME_DEATH_FIRST].thinkfunc = kigrax_dead;
-	kigrax_frames_melee1[KIGRAX_FRAME_MELEE1_FIRE1 - KIGRAX_FRAME_MELEE1_FIRST].thinkfunc = kigrax_strike1;
-	kigrax_frames_melee1[KIGRAX_FRAME_MELEE1_FIRE2 - KIGRAX_FRAME_MELEE1_FIRST].thinkfunc = kigrax_strike1;
-	kigrax_frames_melee2[KIGRAX_FRAME_MELEE2_FIRE - KIGRAX_FRAME_MELEE2_FIRST].thinkfunc = kigrax_strike2;
-	kigrax_frames_attack[KIGRAX_FRAME_ATTACK_FIRE - KIGRAX_FRAME_ATTACK_FIRST].thinkfunc = kigrax_fire_plasma;
-}
-
-/*
-=============
 kigrax_stand
 =============
 */
@@ -226,7 +327,7 @@ static void kigrax_stand(edict_t *self)
 	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
 		return;
 
-	if (random() < KIGRAX_STAND_CHANCE)
+	if (random() <= KIGRAX_STAND_SELECT_CHANCE)
 		self->monsterinfo.currentmove = &kigrax_move_scan;
 	else
 		self->monsterinfo.currentmove = &kigrax_move_stand;
@@ -241,7 +342,7 @@ static void kigrax_walk(edict_t *self)
 {
 	gi.dprintf("walking...\n");
 
-	if (random() < KIGRAX_STAND_CHANCE)
+	if (random() < KIGRAX_STAND_SELECT_CHANCE)
 		self->monsterinfo.currentmove = &kigrax_move_walk2;
 	else
 		self->monsterinfo.currentmove = &kigrax_move_walk1;
@@ -272,7 +373,7 @@ kigrax_search
 */
 static void kigrax_search(edict_t *self)
 {
-	if (random() < KIGRAX_SEARCH_CHANCE)
+	if (random() < KIGRAX_SEARCH_SOUND_CHANCE)
 		gi.sound(self, CHAN_VOICE, sound_search1, 1.0f, ATTN_NORM, 0.0f);
 	else
 		gi.sound(self, CHAN_VOICE, sound_search2, 1.0f, ATTN_NORM, 0.0f);
@@ -285,6 +386,8 @@ kigrax_sight
 */
 static void kigrax_sight(edict_t *self, edict_t *other)
 {
+	(void)other;
+
 	gi.sound(self, CHAN_VOICE, sound_sight, 1.0f, ATTN_NORM, 0.0f);
 	self->monsterinfo.currentmove = &kigrax_move_sight;
 }
@@ -324,7 +427,7 @@ static void kigrax_melee(edict_t *self)
 		return;
 	}
 
-	if (random() < KIGRAX_MELEE_ALT_CHANCE)
+	if (random() < KIGRAX_MELEE_PRIMARY_CHANCE)
 		self->monsterinfo.currentmove = &kigrax_move_melee1;
 	else
 		self->monsterinfo.currentmove = &kigrax_move_melee2;
@@ -380,7 +483,7 @@ static void kigrax_fire_plasma(edict_t *self)
 	VectorSubtract(target, start, dir);
 
 	fire_plasma_bolt(self, start, dir, KIGRAX_PLASMA_DAMAGE, KIGRAX_PLASMA_SPEED,
-			KIGRAX_PLASMA_TYPE);
+		KIGRAX_PLASMA_TYPE);
 
 	gi.WriteByte(svc_muzzleflash2);
 	gi.WriteShort(self - g_edicts);
@@ -395,10 +498,14 @@ kigrax_pain
 */
 static void kigrax_pain(edict_t *self, edict_t *other, float kick, int damage)
 {
+	(void)other;
+	(void)kick;
+	(void)damage;
+
 	if (level.time < self->pain_debounce_time)
 		return;
 
-	self->pain_debounce_time = level.time + KIGRAX_PAIN_DELAY;
+	self->pain_debounce_time = level.time + KIGRAX_PAIN_COOLDOWN;
 
 	if (skill->value == 3)
 		return;
@@ -427,9 +534,14 @@ static void kigrax_dead(edict_t *self)
 kigrax_die
 =============
 */
-static void kigrax_die(edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
+static void kigrax_die(edict_t *self, edict_t *inflictor, edict_t *attacker,
+	int damage, vec3_t point)
 {
 	int	n;
+
+	(void)inflictor;
+	(void)attacker;
+	(void)point;
 
 	if (meansOfDeath == 0x23)
 	{
@@ -439,7 +551,8 @@ static void kigrax_die(edict_t *self, edict_t *inflictor, edict_t *attacker, int
 
 	if (self->health <= self->gib_health)
 	{
-		gi.sound(self, CHAN_VOICE, gi.soundindex("misc/udeath.wav"), 1.0f, ATTN_NORM, 0.0f);
+		gi.sound(self, CHAN_VOICE, gi.soundindex("misc/udeath.wav"),
+			1.0f, ATTN_NORM, 0.0f);
 		for (n = 0; n < 2; n++)
 			ThrowGib(self, "models/objects/gibs/bone/tris.md2", damage, GIB_ORGANIC);
 		for (n = 0; n < 2; n++)
@@ -470,8 +583,6 @@ void SP_monster_kigrax(edict_t *self)
 		return;
 	}
 
-	kigrax_init_moves();
-
 	self->s.modelindex = gi.modelindex("models/monsters/kigrax/tris.md2");
 
 	sound_pain = gi.soundindex("hover/hovpain1.wav");
@@ -492,6 +603,7 @@ void SP_monster_kigrax(edict_t *self)
 	self->health = 200;
 	self->gib_health = -100;
 	self->mass = 150;
+	self->yaw_speed = KIGRAX_YAW_SPEED;
 	self->viewheight = 90;
 
 	self->pain = kigrax_pain;
