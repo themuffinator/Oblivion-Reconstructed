@@ -53,7 +53,7 @@ Each script:
 
 - reads the base semantic version from `VERSION`
 - builds a release binary for its platform
-- stages an `oblivion/` folder containing the platform binary plus `pack/oblivion.cfg`
+- stages an `oblivion/` folder containing the platform binary, `pack/oblivion.cfg`, and `README.html`
 - writes a versioned archive under `dist/` (`.tar.gz` on Linux/macOS, `.zip` on Windows)
 
 The GitHub Actions workflow at `.github/workflows/nightly-release.yml` runs these scripts on a nightly schedule and publishes the generated archives as a release tagged like `v0.1.0-nightly.20260316`.

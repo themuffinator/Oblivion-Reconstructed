@@ -40,6 +40,7 @@ if (Test-Path $distRoot) {
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 Copy-Item $binaryPath (Join-Path $stageDir 'gamex86.dll') -Force
 Copy-Item (Join-Path $rootDir 'pack\oblivion.cfg') (Join-Path $stageDir 'oblivion.cfg') -Force
+Copy-Item (Join-Path $rootDir 'docs\release-readme.html') (Join-Path $stageDir 'README.html') -Force
 
 $archiveDir = Join-Path $rootDir 'dist'
 New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null

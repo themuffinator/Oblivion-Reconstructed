@@ -54,6 +54,7 @@ rm -rf "$dist_dir"
 mkdir -p "$stage_dir"
 cp "$binary_path" "$stage_dir/$binary_name"
 cp "$root_dir/pack/oblivion.cfg" "$stage_dir/oblivion.cfg"
+cp "$root_dir/docs/release-readme.html" "$stage_dir/README.html"
 
 mkdir -p "$root_dir/dist"
 tar -C "$dist_dir" -czf "$archive_path" oblivion
