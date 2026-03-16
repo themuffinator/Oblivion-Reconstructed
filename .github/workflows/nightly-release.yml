@@ -31,9 +31,15 @@ jobs:
             echo "VERSION must contain semantic version text like 0.1.0" >&2
             exit 1
           fi
-          nightly_stamp="$(date -u +%Y%m%d)"
+          nightly_day="$(date -u +%Y%m%d)"
+          nightly_stamp="$nightly_day"
+          release_prefix="Nightly"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            nightly_stamp="$(date -u +%Y%m%d.%H%M%S)"
+            release_prefix="Manual Nightly"
+          fi
           release_tag="v${base_version}-nightly.${nightly_stamp}"
-          release_name="Nightly ${release_tag}"
+          release_name="${release_prefix} ${release_tag}"
           {
             echo "base_version=$base_version"
             echo "nightly_stamp=$nightly_stamp"
@@ -130,6 +136,7 @@ jobs:
             Base version: `${{ needs.metadata.outputs.base_version }}`
             Nightly stamp: `${{ needs.metadata.outputs.nightly_stamp }}`
             
+            Scheduled runs use a date-only nightly tag. Manual dispatches use a UTC timestamp suffix so each dispatch creates a distinct release.
             Archive names now include both platform and architecture, for example `oblivion-windows-x64-${{ needs.metadata.outputs.release_tag }}.zip`.
             Each archive contains an `oblivion/` folder with the platform game module and `oblivion.cfg`.
           makeLatest: false

@@ -174,7 +174,7 @@ cmake --build build --config Release
 <p>
   Nightly release automation builds Linux, macOS, and Windows artifacts from the top-level semantic version stored in <code>VERSION</code>.
   Archive names include both platform and architecture, for example <code>oblivion-windows-x64-v1.0.0-nightly.20260316.zip</code>.
-  Nightly tags use the format <code>v&lt;base-version&gt;-nightly.YYYYMMDD</code>.
+  Scheduled nightly tags use the format <code>v&lt;base-version&gt;-nightly.YYYYMMDD</code>. Manual workflow dispatches append a UTC time suffix such as <code>v1.0.0-nightly.20260316.205724</code> so each dispatch creates a distinct release.
 </p>
 
 <p>

@@ -76,7 +76,7 @@ Each script:
 - stages an `oblivion/` folder containing the platform binary, `pack/oblivion.cfg`, and `README.html`
 - writes a versioned archive under `dist/` (`.tar.gz` on Linux/macOS, `.zip` on Windows) with names such as `oblivion-macos-x64-v1.0.0-nightly.20260316.tar.gz`
 
-The GitHub Actions workflow at `.github/workflows/nightly-release.yml` runs these scripts on a nightly schedule and publishes Linux x64, macOS arm64/x64, and Windows x86/x64 archives under a release tagged like `v1.0.0-nightly.20260316`.
+The GitHub Actions workflow at `.github/workflows/nightly-release.yml` runs these scripts on a nightly schedule and publishes Linux x64, macOS arm64/x64, and Windows x86/x64 archives under a release tagged like `v1.0.0-nightly.20260316`. Manual workflow dispatches use a UTC timestamped tag such as `v1.0.0-nightly.20260316.205724` so same-day manual runs do not overwrite the scheduled nightly release.
 
 These release archives are intended to be extracted over an existing Oblivion installation. They replace the platform game module and `oblivion.cfg`; they do not replace the original mod data install.
 
