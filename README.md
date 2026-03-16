@@ -6,7 +6,7 @@
 
   <p>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv2-blue.svg" alt="GPLv2"></a>
-    <img src="https://img.shields.io/badge/Status-Reconstruction%20In%20Progress-b8860b.svg" alt="Reconstruction In Progress">
+    <img src="https://img.shields.io/badge/Status-Reconstructed%20and%20Playable-2f7d32.svg" alt="Reconstructed and Playable">
     <img src="https://img.shields.io/badge/Platforms-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="Windows Linux macOS">
   </p>
 
@@ -36,6 +36,11 @@
   the reconstruction aims to preserve them unless there is direct evidence that the current code diverged from retail unintentionally.
 </p>
 
+<p>
+  At this point the project is in a well-developed state: the reconstruction work appears substantially in place from current reverse-engineering coverage
+  and limited gameplay testing, while broader playthrough validation and edge-case confirmation remain ongoing.
+</p>
+
 <h2>What This Repository Contains</h2>
 
 <ul>
@@ -48,8 +53,12 @@
 <h2>Platform Support</h2>
 
 <p>
-  The reconstructed game module currently has documented build support on <strong>Windows</strong>, <strong>Linux</strong>, and <strong>macOS</strong>.
-  The release automation packages platform-specific binaries for all three targets.
+  The original retail release of <strong>Oblivion</strong> shipped for <strong>Windows only</strong>. This reconstruction project extends that recovered codebase to
+  documented build and runtime support on <strong>Windows</strong>, <strong>Linux</strong>, and <strong>macOS</strong>.
+</p>
+
+<p>
+  The release automation packages platform-specific binaries for all three targets so an existing Oblivion install can be updated for cross-platform use.
 </p>
 
 <table>
@@ -84,11 +93,12 @@
 <h3>Install From A Release Archive</h3>
 
 <ol>
-  <li>Download the archive for your platform from the repository releases.</li>
-  <li>Extract the archive. It contains an <code>oblivion/</code> directory.</li>
-  <li>Copy the contents of that <code>oblivion/</code> directory into your Quake II game folder for Oblivion.</li>
-  <li>Make sure your Quake II installation also has the original game data it requires.</li>
-  <li>Launch Quake II with <code>+set game oblivion</code> or point your source port at the Oblivion game directory.</li>
+  <li>Install the original Oblivion mod first from <a href="https://www.celephais.net/oblivion/main.html">the original Oblivion release page</a>.</li>
+  <li>Locate the Quake II installation that already contains the installed <code>oblivion/</code> game directory.</li>
+  <li>Download the matching archive for your platform from this repository's releases.</li>
+  <li>Extract the release archive directly into that Quake II installation so its bundled <code>oblivion/</code> folder merges with the existing one.</li>
+  <li>Allow the extraction to replace the existing game binary and <code>oblivion.cfg</code>.</li>
+  <li>Launch Quake II with <code>+set game oblivion</code> or point your source port at the installed Oblivion game directory.</li>
  </ol>
 
 <p>Every release archive now includes:</p>
@@ -98,6 +108,14 @@
   <li><code>oblivion.cfg</code></li>
   <li>a standalone <code>README.html</code> release document</li>
 </ul>
+
+<p>
+  These release files are not a standalone Oblivion install. They are drop-in replacements for the binary and configuration inside an existing retail Oblivion setup.
+</p>
+
+<p>
+  In other words: retail Oblivion remains the required Windows-origin mod install, while this project supplies replacement binaries that let that codebase run across platforms.
+</p>
 
 <h3>Expected Layout After Extraction</h3>
 
@@ -143,8 +161,9 @@ cmake --build build --config Release
 
 <ol>
   <li>Build the module for your platform.</li>
-  <li>Copy the produced binary into your Quake II <code>oblivion/</code> game directory.</li>
-  <li>Copy <code>pack/oblivion.cfg</code> if you also want the repository's default runtime bindings.</li>
+  <li>Install the original Oblivion mod from <a href="https://www.celephais.net/oblivion/main.html">the original release page</a> if it is not already present.</li>
+  <li>Copy the produced binary into that existing Quake II <code>oblivion/</code> game directory.</li>
+  <li>Copy <code>pack/oblivion.cfg</code> to replace the installed configuration if you want the repository's current default bindings and settings.</li>
   <li>Launch Quake II with <code>+set game oblivion</code>.</li>
 </ol>
 
@@ -153,6 +172,10 @@ cmake --build build --config Release
 <p>
   Nightly release automation builds Linux, macOS, and Windows artifacts from the top-level semantic version stored in <code>VERSION</code>.
   Nightly tags use the format <code>v&lt;base-version&gt;-nightly.YYYYMMDD</code>.
+</p>
+
+<p>
+  The current base version is <code>1.0.0</code>, reflecting a mature reconstruction state rather than an early bootstrap snapshot.
 </p>
 
 <h2 id="repository-layout">Repository Layout</h2>
@@ -198,6 +221,54 @@ cmake --build build --config Release
   The key creative credit remains with the original <strong>Oblivion</strong> release by <strong>Lethargy Software</strong>.
   This repository is a reconstruction effort focused on preservation, analysis, and faithful source recovery.
 </p>
+
+<p>
+  As tribute to the original release, the core Oblivion team credits are preserved here in a cleaner modern form.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th align="left">Discipline</th>
+      <th align="left">Original Oblivion Team</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Programming</td>
+      <td>Mike "Gripp" Ruete; Tim "Argh" Wright</td>
+    </tr>
+    <tr>
+      <td>Level Design</td>
+      <td>Dan "Infliction" Haigh; Alex "MonkeyDonut" Gingell; Dan "Trebz" Nolan; Sean "Spider" Soucy</td>
+    </tr>
+    <tr>
+      <td>Artwork</td>
+      <td>John "MetalSlime" Fitzgibbons; Tyler "Witz" Wilson; Eli "Dunan" Karney; SmokyG</td>
+    </tr>
+    <tr>
+      <td>Models</td>
+      <td>Andrew "Betlog" Eglington; Matt Hasselman; John "Jonny" Gorden; Rorshach</td>
+    </tr>
+    <tr>
+      <td>Music</td>
+      <td>Carl "Dill" Bown</td>
+    </tr>
+    <tr>
+      <td>Website / Manual</td>
+      <td>Ryan "BabelFish" Freebern</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  Additional contributor credit remains warranted where reconstruction-era code, research, or testing remnants may still be present in the repository history and current tree.
+</p>
+
+<ul>
+  <li><strong>Konig Varorson</strong> for earlier monster recreation code that may have inadvertently helped guide parts of the reverse-engineering process.</li>
+  <li><strong>Nicco</strong> for testing support and feedback that remains directly relevant to the project.</li>
+</ul>
 
 <h2>License</h2>
 

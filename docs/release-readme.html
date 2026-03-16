@@ -79,6 +79,7 @@
     <div class="eyebrow">Oblivion Reverse</div>
     <h1>Release Readme</h1>
     <p><strong>This project aims to reconstruct the original Oblivion Quake II mod source code as accurately as possible, including original retail bugs and quirks.</strong></p>
+    <p>The reconstruction is now in a mature, playable state from limited testing, but it should still be understood as a retail-parity recovery effort rather than a redesigned remaster.</p>
 
     <div class="panel">
       <p>This release archive contains an <code>oblivion/</code> directory with:</p>
@@ -91,13 +92,17 @@
 
     <h2>Installation</h2>
     <ol>
-      <li>Extract the release archive.</li>
-      <li>Copy the contents of the included <code>oblivion/</code> folder into your Quake II Oblivion game directory.</li>
-      <li>Ensure your Quake II installation has the game data required to run Oblivion.</li>
+      <li>Install the original Oblivion mod first from <a href="https://www.celephais.net/oblivion/main.html">the original Oblivion release page</a>.</li>
+      <li>Locate the Quake II installation that already contains the installed <code>oblivion/</code> game directory.</li>
+      <li>Extract this release archive directly into that Quake II installation.</li>
+      <li>Allow the extraction to replace the existing platform binary and <code>oblivion.cfg</code>.</li>
       <li>Launch Quake II with <code>+set game oblivion</code>.</li>
     </ol>
 
+    <p>This archive is an update for an existing Oblivion installation, not a standalone distribution of the full mod data.</p>
+
     <h2>Included Binary Names</h2>
+    <p>The original retail Oblivion release was Windows-only. This reconstruction provides replacement game-module binaries for Windows, Linux, and macOS.</p>
     <table>
       <thead>
         <tr>
@@ -126,11 +131,14 @@
       Oblivion Reverse is a retail-parity reconstruction project. Its purpose is preservation and accurate source recovery,
       not redesign. If retail Oblivion behaved strangely, the reconstruction often needs to behave strangely too.
     </p>
+    <p>
+      The cross-platform support in this archive comes from the reconstruction project itself; it is not a property of the original retail release.
+    </p>
 
     <h2>Versioning</h2>
     <p>
       Nightly builds use the repository semantic base version plus a UTC nightly stamp, for example:
-      <code>v0.1.0-nightly.20260316</code>
+      <code>v1.0.0-nightly.20260316</code>
     </p>
 
     <h2>License And Attribution</h2>
@@ -138,6 +146,48 @@
       Original creative credit belongs to the original Oblivion release by Lethargy Software.
       This reconstruction repository is distributed under the GNU General Public License v2.
     </p>
+    <p>As tribute to the original release, the core Oblivion team credits are preserved here without the legacy contact addresses.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Discipline</th>
+          <th>Original Oblivion Team</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Programming</td>
+          <td>Mike "Gripp" Ruete; Tim "Argh" Wright</td>
+        </tr>
+        <tr>
+          <td>Level Design</td>
+          <td>Dan "Infliction" Haigh; Alex "MonkeyDonut" Gingell; Dan "Trebz" Nolan; Sean "Spider" Soucy</td>
+        </tr>
+        <tr>
+          <td>Artwork</td>
+          <td>John "MetalSlime" Fitzgibbons; Tyler "Witz" Wilson; Eli "Dunan" Karney; SmokyG</td>
+        </tr>
+        <tr>
+          <td>Models</td>
+          <td>Andrew "Betlog" Eglington; Matt Hasselman; John "Jonny" Gorden; Rorshach</td>
+        </tr>
+        <tr>
+          <td>Music</td>
+          <td>Carl "Dill" Bown</td>
+        </tr>
+        <tr>
+          <td>Website / Manual</td>
+          <td>Ryan "BabelFish" Freebern</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Contributor credit also remains due where remnants of earlier reconstruction work may still be present.
+    </p>
+    <ul>
+      <li><strong>Konig Varorson</strong> for earlier monster recreation code that may have inadvertently helped guide parts of the reverse-engineering process.</li>
+      <li><strong>Nicco</strong> for testing support and feedback that remains directly relevant to the project.</li>
+    </ul>
   </main>
 </body>
 </html>

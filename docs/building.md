@@ -2,6 +2,8 @@
 
 This repository now ships with a CMake build that targets the Quake II game DLL/SO located under `src/game/`.
 
+Retail Oblivion itself was released only for Windows. The reconstruction in this repository is what enables equivalent game-module builds for Windows, Linux, and macOS.
+
 The repository version is stored in the top-level `VERSION` file and is used by the nightly packaging workflow.
 
 ## Prerequisites
@@ -56,7 +58,9 @@ Each script:
 - stages an `oblivion/` folder containing the platform binary, `pack/oblivion.cfg`, and `README.html`
 - writes a versioned archive under `dist/` (`.tar.gz` on Linux/macOS, `.zip` on Windows)
 
-The GitHub Actions workflow at `.github/workflows/nightly-release.yml` runs these scripts on a nightly schedule and publishes the generated archives as a release tagged like `v0.1.0-nightly.20260316`.
+The GitHub Actions workflow at `.github/workflows/nightly-release.yml` runs these scripts on a nightly schedule and publishes the generated archives as a release tagged like `v1.0.0-nightly.20260316`.
+
+These release archives are intended to be extracted over an existing Oblivion installation. They replace the platform game module and `oblivion.cfg`; they do not replace the original mod data install.
 
 ## Validation
 
