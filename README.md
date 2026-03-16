@@ -266,7 +266,7 @@ cmake --build build --config Release
 </p>
 
 <ul>
-  <li><strong>Konig Varorson</strong> for earlier monster recreation code that may have inadvertently helped guide parts of the reverse-engineering process.</li>
+  <li><strong>Konig Varorson</strong> for earlier monster recreation code that may have inadvertently helped guide parts of the reverse-engineering process. Repository: <a href="https://github.com/Konig-Varorson">github.com/Konig-Varorson</a></li>
   <li><strong>Nicco</strong> for testing support and feedback that remains directly relevant to the project.</li>
   <li><strong>Shaun "Cyberslash" Wilson</strong> for QuakeActor Beta Source Code that may still have remnants reflected in <code>misc_actor</code> and therefore warrants acknowledgment.</li>
 </ul>
