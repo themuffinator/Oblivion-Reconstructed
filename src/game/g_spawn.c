@@ -373,6 +373,11 @@ void ED_CallSpawn (edict_t *ent)
 			return;
 		}
 	}
+	/*
+	 * Keep unknown classnames resident after logging. Retail barracko.bsp ships
+	 * a typoed info_teleporter_dest, and the stock misc_teleporter path still
+	 * works because teleporter_touch resolves destinations by targetname alone.
+	 */
 	gi.dprintf ("%s doesn't have a spawn function\n", ent->classname);
 }
 
