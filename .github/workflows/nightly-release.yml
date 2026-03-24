@@ -13,7 +13,85 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  change-detection:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.detect.outputs.should_run }}
+      reason: ${{ steps.detect.outputs.reason }}
+    steps:
+      - id: detect
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const currentSha = context.sha;
+            const eventName = context.eventName;
+
+            if (eventName === "workflow_dispatch") {
+              core.setOutput("should_run", "true");
+              core.setOutput("reason", "Manual dispatch always runs.");
+              return;
+            }
+
+            const releases = await github.paginate(
+              github.rest.repos.listReleases,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              }
+            );
+
+            const nightlyRelease = releases.find((release) =>
+              !release.draft &&
+              /^v.+-nightly\./.test(release.tag_name)
+            );
+
+            if (!nightlyRelease) {
+              core.setOutput("should_run", "true");
+              core.setOutput("reason", "No previous nightly release exists.");
+              return;
+            }
+
+            let nightlySha;
+            try {
+              const ref = await github.rest.git.getRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `tags/${nightlyRelease.tag_name}`,
+              });
+
+              nightlySha = ref.data.object.sha;
+              if (ref.data.object.type === "tag") {
+                const tag = await github.rest.git.getTag({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag_sha: nightlySha,
+                });
+                nightlySha = tag.data.object.sha;
+              }
+            } catch (error) {
+              core.setOutput("should_run", "true");
+              core.setOutput(
+                "reason",
+                `Unable to resolve ${nightlyRelease.tag_name}; running nightly build.`
+              );
+              return;
+            }
+
+            const shouldRun = nightlySha !== currentSha;
+            const reason = shouldRun
+              ? `Changes detected since ${nightlyRelease.tag_name} (${nightlySha}).`
+              : `No changes since ${nightlyRelease.tag_name} (${nightlySha}).`;
+
+            core.setOutput("should_run", shouldRun ? "true" : "false");
+            core.setOutput("reason", reason);
+
+      - name: Report decision
+        run: echo "${{ steps.detect.outputs.reason }}"
+
   metadata:
+    needs: change-detection
+    if: needs.change-detection.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     outputs:
       release_tag: ${{ steps.vars.outputs.release_tag }}
@@ -48,7 +126,10 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   build-linux:
-    needs: metadata
+    needs:
+      - change-detection
+      - metadata
+    if: needs.change-detection.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -76,7 +157,10 @@ jobs:
           path: ${{ steps.package.outputs.archive_path }}
 
   build-macos:
-    needs: metadata
+    needs:
+      - change-detection
+      - metadata
+    if: needs.change-detection.outputs.should_run == 'true'
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -99,7 +183,10 @@ jobs:
           path: ${{ steps.package.outputs.archive_path }}
 
   build-windows:
-    needs: metadata
+    needs:
+      - change-detection
+      - metadata
+    if: needs.change-detection.outputs.should_run == 'true'
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -123,10 +210,12 @@ jobs:
 
   release:
     needs:
+      - change-detection
       - metadata
       - build-linux
       - build-macos
       - build-windows
+    if: needs.change-detection.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
